@@ -29,6 +29,7 @@ interface rggen_bus_if #(
     input   address,
     input   write,
     input   write_data,
+    input   strobe,
     output  ready,
     output  status,
     output  read_data

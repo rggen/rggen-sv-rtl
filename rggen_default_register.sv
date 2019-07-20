@@ -13,4 +13,28 @@ module rggen_default_register #(
   rggen_register_if.register  register_if,
   rggen_bit_field_if.register bit_field_if
 );
+  rggen_register_common #(
+    .READABLE       (READABLE       ),
+    .WRITABLE       (WRITABLE       ),
+    .ADDRESS_WIDTH  (ADDRESS_WIDTH  ),
+    .OFFSET_ADDRESS (OFFSET_ADDRESS ),
+    .BUS_WIDTH      (BUS_WIDTH      ),
+    .DATA_WIDTH     (DATA_WIDTH     ),
+    .VALID_BITS     (VALID_BITS     ),
+    .REGISTER_INDEX (REGISTER_INDEX )
+  ) u_register_common (
+    .i_clk              (i_clk        ),
+    .i_rst_n            (i_rst_n      ),
+    .register_if        (register_if  ),
+    .i_additional_match (1'b1         ),
+    .bit_field_if       (bit_field_if )
+  );
+
+`ifdef RGGEN_ENABLE_BACKDOOR
+  initial begin
+    rggen_backddor_pkg::set_backdoor(
+      $sformatf("%m"), u_register_common.backdoor_if
+    );
+  end
+`endif
 endmodule

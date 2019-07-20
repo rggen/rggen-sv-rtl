@@ -7,4 +7,20 @@ module rggen_bit_field_rw #(
   rggen_bit_field_if.bit_field  bit_field_if,
   output  logic [WIDTH-1:0]     o_value
 );
+  logic [WIDTH-1:0] value;
+
+  assign  bit_field_if.read_data  = value;
+  assign  bit_field_if.value      = value;
+  assign  o_value                 = value;
+
+  always_ff @(posedge i_clk, negedge i_rst_n) begin
+    if (!i_rst_n) begin
+      value <= INITIAL_VALUE;
+    end
+    else if (bit_field_if.valid) begin
+      value <=
+        (bit_field_if.write_data &   bit_field_if.write_mask ) |
+        (value                   & (~bit_field_if.write_mask));
+    end
+  end
 endmodule
