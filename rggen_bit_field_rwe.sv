@@ -18,7 +18,7 @@ module rggen_bit_field_rwe #(
     if (!i_rst_n) begin
       value <= INITIAL_VALUE;
     end
-    else if (i_enable && bit_field_if.value) begin
+    else if (i_enable && bit_field_if.valid) begin
       value <=
         (bit_field_if.write_data &   bit_field_if.write_mask ) |
         (value                   & (~bit_field_if.write_mask));
