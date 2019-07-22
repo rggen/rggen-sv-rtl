@@ -37,7 +37,7 @@ module rggen_indirect_register #(
 
 `ifdef RGGEN_ENABLE_BACKDOOR
   initial begin
-    rggen_backdoor_pkg::set_backdoor(
+    rggen_backdoor_pkg::set_backdoor_vif(
       $sformatf("%m"), u_register_common.backdoor_if
     );
   end

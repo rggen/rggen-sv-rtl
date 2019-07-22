@@ -79,7 +79,7 @@ module rggen_register_common #(
 
   assign  active              = (WORDS > 1) ? |match : match[0];
   assign  register_if.active  = active;
-  assign  register_if.ready   = active;
+  assign  register_if.ready   = (!backdoor_valid) ? active : '0;
   assign  register_if.status  = rggen_rtl_pkg::RGGEN_OKAY;
 
   generate for (i = 0;i < WORDS;++i) begin : g_data_collection
@@ -94,11 +94,13 @@ module rggen_register_common #(
   assign  register_if.read_data = u_read_data_mux.mux(match, read_data);
 
 `ifdef RGGEN_ENABLE_BACKDOOR
+  //  Backdoor access
   rggen_backdoor_if backdoor_if (i_clk, i_rst_n);
-  assign  backdoor_valid  = backdoor_if.valid;
-  assign  read_mask[1]    = backdoor_if.read_mask;
-  assign  write_mask[1]   = backdoor_if.write_mask;
-  assign  write_data[1]   = backdoor_if.write_data;
+  assign  backdoor_valid        = backdoor_if.valid;
+  assign  read_mask[1]          = backdoor_if.read_mask;
+  assign  write_mask[1]         = backdoor_if.write_mask;
+  assign  write_data[1]         = backdoor_if.write_data;
+  assign  backdoor_if.read_data = bit_field_if.read_data;
 `else
   assign  backdoor_valid  = '0;
   assign  read_mask[1]    = '0;
