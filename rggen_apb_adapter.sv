@@ -8,14 +8,16 @@ module rggen_apb_adapter #(
   rggen_apb_if.slave      apb_if,
   rggen_register_if.host  register_if[REGISTERS]
 );
-  rggen_bus_if #(ADDRESS_WIDTH, BUS_WIDTH) bus_if();
+  rggen_bus_if #(ADDRESS_WIDTH, BUS_WIDTH)  bus_if();
+  logic                                     valid_pready;
 
-  assign  bus_if.valid      = apb_if.psel;
+  assign  bus_if.valid      = (apb_if.psel && (!valid_pready)) ? '1 : '0;
   assign  bus_if.address    = apb_if.paddr;
   assign  bus_if.write      = apb_if.pwrite;
   assign  bus_if.write_data = apb_if.pwdata;
   assign  bus_if.strobe     = apb_if.pstrb;
 
+  assign  valid_pready  = (apb_if.penable) ? apb_if.pready : '0;
   always_ff @(posedge i_clk , negedge i_rst_n) begin
     if (!i_rst_n) begin
       apb_if.pready <= '0;
