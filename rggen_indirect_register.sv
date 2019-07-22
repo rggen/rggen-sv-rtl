@@ -9,11 +9,11 @@ module rggen_indirect_register #(
   parameter int                             INDIRECT_INDEX_WIDTH  = 1,
   parameter bit [INDIRECT_INDEX_WIDTH-1:0]  INDIRECT_INDEX_VALUE  = '0
 )(
-  input logic                         i_clk,
-  input logic                         i_rst_n,
-  rggen_register_if.register          register_if,
-  input logic [INDIRECT_INDEX_WIDTH]  i_indirect_index,
-  rggen_bit_field_if.register         bit_field_if
+  input logic                             i_clk,
+  input logic                             i_rst_n,
+  rggen_register_if.register              register_if,
+  input logic [INDIRECT_INDEX_WIDTH-1:0]  i_indirect_index,
+  rggen_bit_field_if.register             bit_field_if
 );
   logic index_matched;
 
