@@ -70,6 +70,7 @@ module rggen_register_common #(
     for (int i = 0;i < BUS_BYTE_WIDTH;++i) begin
       mask[8*i+:8]  = {8{strobe[i]}};
     end
+    return mask;
   endfunction
 
   //  Response
