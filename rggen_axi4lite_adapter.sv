@@ -68,7 +68,7 @@ module rggen_axi4lite_adapter #(
 
     if (WRITE_FIRST) begin
       write_valid = (awvalid && wvalid) ? '1 : '0;
-      read_valid  = (!wvalid) ? arvalid : '0;
+      read_valid  = (!write_valid) ? arvalid : '0;
     end
     else begin
       read_valid  = arvalid;
@@ -109,7 +109,7 @@ module rggen_axi4lite_adapter #(
 
   //  Response
   logic [1:0]           response_valid;
-  logic                 response_ready;
+  logic                 response_ack;
   logic [BUS_WIDTH-1:0] read_data;
   logic [1:0]           status;
 
@@ -119,13 +119,15 @@ module rggen_axi4lite_adapter #(
   assign  axi4lite_if.rdata   = read_data;
   assign  axi4lite_if.rresp   = status;
 
-  assign  response_ready
-    = (axi4lite_if.bready || axi4lite_if.rready) ? '1 : '0;
+  assign  response_ack  = (
+    (axi4lite_if.bvalid && axi4lite_if.bready) ||
+    (axi4lite_if.rvalid && axi4lite_if.rready)
+  ) ? '1 : '0;
   always_ff @(posedge i_clk, negedge i_rst_n) begin
     if (!i_rst_n) begin
       response_valid  <= 2'b00;
     end
-    else if ((response_valid != '0) && response_ready) begin
+    else if (response_ack) begin
       response_valid  <= 2'b00;
     end
     else if (bus_if.valid && bus_if.ready) begin
@@ -163,7 +165,7 @@ module rggen_axi4lite_adapter #(
           end
         end
         WAIT_FOR_RESPONSE_READY: begin
-          if (response_ready) begin
+          if (response_ack) begin
             state <= IDLE;
           end
         end
