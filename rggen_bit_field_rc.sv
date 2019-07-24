@@ -13,7 +13,7 @@ module rggen_bit_field_rc #(
   logic [WIDTH-1:0] value;
 
   assign  bit_field_if.read_data  = value & i_mask;
-  assign  bit_field_if.value      = value & i_mask;
+  assign  bit_field_if.value      = value;
   assign  o_value                 = value & i_mask;
   assign  o_value_unmasked        = value;
 
