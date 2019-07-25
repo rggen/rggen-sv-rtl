@@ -61,16 +61,23 @@ module rggen_register_common #(
 
   assign  read_mask[0]  = get_read_mask(match, register_if.write);
   assign  write_mask[0] = get_write_mask(match, register_if.write, register_if.strobe);
-  assign  write_data[0] = {WORDS{register_if.write_data}};
+  assign  write_data[0] = (WRITABLE) ? {WORDS{register_if.write_data}} : '0;
 
   function automatic logic [DATA_WIDTH-1:0] get_read_mask(
     logic [WORDS-1:0] match,
     logic             write
   );
     logic [DATA_WIDTH-1:0]  mask;
-    for (int i = 0;i < WORDS;++i) begin
-      mask[BUS_WIDTH*i+:BUS_WIDTH]  = (match[i] && (!write)) ? {BUS_WIDTH{1'b1}} : {BUS_WIDTH{1'b0}};
+
+    if (READABLE) begin
+      for (int i = 0;i < WORDS;++i) begin
+        mask[BUS_WIDTH*i+:BUS_WIDTH]  = (match[i] && (!write)) ? {BUS_WIDTH{1'b1}} : {BUS_WIDTH{1'b0}};
+      end
     end
+    else begin
+      mask  = '0;
+    end
+
     return mask;
   endfunction
 
@@ -80,9 +87,16 @@ module rggen_register_common #(
     logic [BUS_BYTE_WIDTH]  strobe
   );
     logic [DATA_WIDTH-1:0]  mask;
-    for (int i = 0;i < WORDS;++i) begin
-      mask[BUS_WIDTH*i+:BUS_WIDTH]  = (match[i] && write) ? expand_strobe(strobe) : {BUS_WIDTH{1'b0}};
+
+    if (WRITABLE) begin
+      for (int i = 0;i < WORDS;++i) begin
+        mask[BUS_WIDTH*i+:BUS_WIDTH]  = (match[i] && write) ? expand_strobe(strobe) : {BUS_WIDTH{1'b0}};
+      end
     end
+    else begin
+      mask  = '0;
+    end
+
     return mask;
   endfunction
 
@@ -106,7 +120,7 @@ module rggen_register_common #(
   assign  register_if.active    = active;
   assign  register_if.ready     = (!backdoor_valid) ? active : '0;
   assign  register_if.status    = rggen_rtl_pkg::RGGEN_OKAY;
-  assign  register_if.read_data = u_read_data_mux.mux(match, read_data);
+  assign  register_if.read_data = (READABLE) ? u_read_data_mux.mux(match, read_data) : '0;
   assign  register_if.value     = collect_valid_value_bits(bit_field_if.value);
 
   function automatic logic [DATA_WIDTH-1:0] collect_valid_value_bits(
@@ -119,16 +133,22 @@ module rggen_register_common #(
     return value;
   endfunction
 
-
   function automatic read_data_array collect_valid_read_data_bits(
     logic [DATA_WIDTH-1:0]  raw_read_data
   );
     read_data_array read_data;
-    for (int i = 0;i < WORDS;++i) begin
-      for (int j = 0;j < BUS_WIDTH;++j) begin
-        read_data[i][j] = (VALID_BITS[BUS_WIDTH*i+j]) ? raw_read_data[BUS_WIDTH*i+j] : 1'b0;
+
+    if (READABLE) begin
+      for (int i = 0;i < WORDS;++i) begin
+        for (int j = 0;j < BUS_WIDTH;++j) begin
+          read_data[i][j] = (VALID_BITS[BUS_WIDTH*i+j]) ? raw_read_data[BUS_WIDTH*i+j] : 1'b0;
+        end
       end
     end
+    else begin
+      read_data = '{ default: {BUS_WIDTH{1'b0}} };
+    end
+
     return read_data;
   endfunction
 

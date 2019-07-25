@@ -9,7 +9,7 @@ module rggen_bit_field_wo #(
 );
   logic [WIDTH-1:0] value;
 
-  assign  bit_field_if.read_data  = value;
+  assign  bit_field_if.read_data  = '0;
   assign  bit_field_if.value      = value;
   assign  o_value                 = value;
 
