@@ -27,7 +27,7 @@ module rggen_axi4lite_bridge (
       request_done  <= '0;
     end
     else begin
-      if (axi4lite_if.awvlid && axi4lite_if.awready) begin
+      if (axi4lite_if.awvalid && axi4lite_if.awready) begin
         request_done[0] <= '1;
       end
       if (axi4lite_if.wvalid && axi4lite_if.wready) begin
