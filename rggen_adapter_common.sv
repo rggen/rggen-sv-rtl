@@ -1,14 +1,16 @@
-module rggen_adapter_common #(
-  parameter int BUS_WIDTH = 32,
-  parameter int REGISTERS = 1
+module rggen_adapter_common
+  import  rggen_rtl_pkg::*;
+#(
+  parameter int                 BUS_WIDTH     = 32,
+  parameter int                 REGISTERS     = 1,
+  parameter rggen_status        ERROR_STATUS  = RGGEN_OKAY,
+  parameter bit [BUS_WIDTH-1:0] ERROR_DATA    = '0
 )(
   input logic             i_clk,
   input logic             i_rst_n,
   rggen_bus_if.slave      bus_if,
   rggen_register_if.host  register_if[REGISTERS]
 );
-  import  rggen_rtl_pkg::*;
-
   genvar  i;
 
   //  State
@@ -41,10 +43,11 @@ module rggen_adapter_common #(
   logic [REGISTERS-0:0]     ready;
   logic [REGISTERS-1:0]     active;
   logic [STATUS_WIDTH-1:0]  status[REGISTERS+1];
-  logic [BUS_WIDTH-1:0]     read_data[REGISTERS];
+  logic [BUS_WIDTH-1:0]     read_data[REGISTERS+1];
 
-  assign  ready[REGISTERS]  = ~|active;
-  assign  status[REGISTERS] = RGGEN_OKAY;
+  assign  ready[REGISTERS]      = ~|active;
+  assign  status[REGISTERS]     = ERROR_STATUS;
+  assign  read_data[REGISTERS]  = ERROR_DATA;
 
   generate for (i = 0;i < REGISTERS;++i) begin : g_response
     assign  ready[i]      = register_if[i].ready;
@@ -54,9 +57,9 @@ module rggen_adapter_common #(
   end endgenerate
 
   rggen_mux #(STATUS_WIDTH, REGISTERS + 1) u_status_mux();
-  rggen_mux #(BUS_WIDTH   , REGISTERS + 0) u_read_data_mux();
+  rggen_mux #(BUS_WIDTH   , REGISTERS + 1) u_read_data_mux();
 
   assign  bus_if.ready      = |ready;
-  assign  bus_if.status     = rggen_status'(u_status_mux.mux(ready, status));
-  assign  bus_if.read_data  = u_read_data_mux.mux(ready[REGISTERS-1:0], read_data);
+  assign  bus_if.status     = rggen_status'(u_status_mux.mux(active, status));
+  assign  bus_if.read_data  = u_read_data_mux.mux(active, read_data);
 endmodule
