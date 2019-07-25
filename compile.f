@@ -27,5 +27,7 @@ ${RGGEN_SV_RTL_ROOT}/rggen_bus_if.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_adapter_common.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_apb_if.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_apb_adapter.sv
+${RGGEN_SV_RTL_ROOT}/rggen_apb_bridge.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_axi4lite_if.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_axi4lite_adapter.sv
+${RGGEN_SV_RTL_ROOT}/rggen_axi4lite_bridge.sv
