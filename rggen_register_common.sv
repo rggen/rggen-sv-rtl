@@ -23,6 +23,9 @@ module rggen_register_common #(
 
   //  Decode address
   logic [WORDS-1:0] match;
+  logic             active;
+
+  assign  active  = (WORDS > 1) ? |match : match[0];
 
   generate for (g = 0;g < WORDS;++g) begin : g_decoder
     localparam  bit [ADDRESS_WIDTH-1:0]
@@ -48,20 +51,22 @@ module rggen_register_common #(
   end endgenerate
 
   //  Request
+  logic                   frontdoor_valid;
   logic                   backdoor_valid;
   logic                   pending_valid;
   logic [DATA_WIDTH-1:0]  read_mask[2];
   logic [DATA_WIDTH-1:0]  write_mask[2];
   logic [DATA_WIDTH-1:0]  write_data[2];
 
-  assign  bit_field_if.valid      = (backdoor_valid || register_if.valid || pending_valid) ? '1 : '0;
+  assign  bit_field_if.valid      = (frontdoor_valid || backdoor_valid || pending_valid) ? '1 : '0;
   assign  bit_field_if.read_mask  = (backdoor_valid) ? read_mask[1]  : read_mask[0];
   assign  bit_field_if.write_mask = (backdoor_valid) ? write_mask[1] : write_mask[0];
   assign  bit_field_if.write_data = (backdoor_valid) ? write_data[1] : write_data[0];
 
-  assign  read_mask[0]  = get_read_mask(match, register_if.write);
-  assign  write_mask[0] = get_write_mask(match, register_if.write, register_if.strobe);
-  assign  write_data[0] = (WRITABLE) ? {WORDS{register_if.write_data}} : '0;
+  assign  frontdoor_valid = (active) ? register_if.valid : '0;
+  assign  read_mask[0]    = get_read_mask(match, register_if.write);
+  assign  write_mask[0]   = get_write_mask(match, register_if.write, register_if.strobe);
+  assign  write_data[0]   = (WRITABLE) ? {WORDS{register_if.write_data}} : '0;
 
   function automatic logic [DATA_WIDTH-1:0] get_read_mask(
     logic [WORDS-1:0] match,
@@ -111,11 +116,9 @@ module rggen_register_common #(
   //  Response
   typedef logic [BUS_WIDTH-1:0] read_data_array[WORDS];
 
-  logic                         active;
   read_data_array               read_data;
   rggen_mux #(BUS_WIDTH, WORDS) u_read_data_mux();
 
-  assign  active                = (WORDS > 1) ? |match : match[0];
   assign  read_data             = collect_valid_read_data_bits(bit_field_if.read_data);
   assign  register_if.active    = active;
   assign  register_if.ready     = (!backdoor_valid) ? active : '0;
@@ -168,7 +171,7 @@ module rggen_register_common #(
     else if (register_if.ready) begin
       pending_valid <= '0;
     end
-    else if (backdoor_valid && register_if.valid) begin
+    else if (backdoor_valid && frontdoor_valid) begin
       pending_valid <= '1;
     end
   end
