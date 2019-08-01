@@ -47,7 +47,7 @@ interface rggen_backdoor_if(
   endtask
 
   task automatic backdoor_access(
-    input bit                   write,
+    input bit             write,
     input uvm_reg_data_t  mask,
     ref   uvm_reg_data_t  data
   );
