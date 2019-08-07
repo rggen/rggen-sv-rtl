@@ -15,6 +15,7 @@ ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_rwe.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_rwl.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_w01c.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_w01s.sv
+${RGGEN_SV_RTL_ROOT}/rggen_bit_field_w01trg.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_wo.sv
 
 ${RGGEN_SV_RTL_ROOT}/rggen_register_if.sv
