@@ -87,9 +87,9 @@ module rggen_register_common #(
   endfunction
 
   function automatic logic [DATA_WIDTH-1:0] get_write_mask(
-    logic [WORDS-1:0]       match,
-    logic                   write,
-    logic [BUS_BYTE_WIDTH]  strobe
+    logic [WORDS-1:0]           match,
+    logic                       write,
+    logic [BUS_BYTE_WIDTH-1:0]  strobe
   );
     logic [DATA_WIDTH-1:0]  mask;
 
