@@ -27,10 +27,23 @@ module rggen_bit_field_rc #(
   end
 
   function automatic logic [WIDTH-1:0] get_next_value();
+    logic             valid;
     logic [WIDTH-1:0] read_mask;
     logic [WIDTH-1:0] clear;
+    logic [WIDTH-1:0] set;
+
+    valid     = bit_field_if.valid;
     read_mask = bit_field_if.read_mask;
-    clear     = (bit_field_if.valid) ? ~read_mask : '1;
-    return (value & clear) | i_set;
+
+    if (valid && (read_mask != '0)) begin
+      clear = '1;
+      set   = '0;
+    end
+    else begin
+      clear = '0;
+      set   = i_set;
+    end
+
+    return (value & (~clear)) | set;
   endfunction
 endmodule
