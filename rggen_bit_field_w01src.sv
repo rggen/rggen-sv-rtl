@@ -38,9 +38,13 @@ module rggen_bit_field_w01src #(
       clear = '1;
       set   = '0;
     end
-    else begin
+    else if (write_mask != '0) begin
       clear = '0;
       set   = write_mask & ((SET_VALUE) ? write_data : ~write_data);
+    end
+    else begin
+      clear = '0;
+      set   = '0;
     end
 
     return (value & (~clear)) | set;
