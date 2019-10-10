@@ -35,12 +35,12 @@ module rggen_bit_field_w01c #(
     write_data  = bit_field_if.write_data;
     write_mask  = bit_field_if.write_mask;
     if (bit_field_if.valid && (write_mask != '0)) begin
-      clear = write_mask & ((CLEAR_VALUE) ? ~write_mask : write_mask);
+      clear = write_mask & ((CLEAR_VALUE) ? write_data : ~write_data);
     end
     else begin
-      clear = '1;
+      clear = '0;
     end
 
-    return (value & clear) | i_set;
+    return (value & (~clear)) | i_set;
   endfunction
 endmodule

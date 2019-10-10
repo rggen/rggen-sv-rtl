@@ -32,7 +32,7 @@ module rggen_bit_field_w01s #(
     write_data  = bit_field_if.write_data;
     write_mask  = bit_field_if.write_mask;
     if (bit_field_if.valid && (write_mask != '0)) begin
-      set = write_mask & ((SET_VALUE) ? write_mask : ~write_mask);
+      set = write_mask & ((SET_VALUE) ? write_data : ~write_data);
     end
     else begin
       set = '0;
