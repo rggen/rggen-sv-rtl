@@ -34,7 +34,7 @@ module rggen_bit_field_rwc #(
     write_mask    = bit_field_if.write_mask;
     write_access  = (bit_field_if.valid) ? |write_mask : '0;
 
-    if (WRITE_FIRST && write_mask) begin
+    if (WRITE_FIRST && write_access) begin
       source_select = {1'b0, 1'b1};
     end
     else if ((!WRITE_FIRST) && i_clear) begin
