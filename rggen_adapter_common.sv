@@ -60,6 +60,6 @@ module rggen_adapter_common
   rggen_mux #(BUS_WIDTH   , REGISTERS + 1) u_read_data_mux();
 
   assign  bus_if.ready      = |ready;
-  assign  bus_if.status     = rggen_status'(u_status_mux.mux(active, status));
-  assign  bus_if.read_data  = u_read_data_mux.mux(active, read_data);
+  assign  bus_if.status     = rggen_status'(u_status_mux.mux(ready, status));
+  assign  bus_if.read_data  = u_read_data_mux.mux(ready, read_data);
 endmodule
