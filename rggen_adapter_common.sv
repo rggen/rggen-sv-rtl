@@ -1,10 +1,10 @@
 module rggen_adapter_common
   import  rggen_rtl_pkg::*;
 #(
-  parameter int                 BUS_WIDTH     = 32,
-  parameter int                 REGISTERS     = 1,
-  parameter rggen_status        ERROR_STATUS  = RGGEN_OKAY,
-  parameter bit [BUS_WIDTH-1:0] ERROR_DATA    = '0
+  parameter int                 BUS_WIDTH         = 32,
+  parameter int                 REGISTERS         = 1,
+  parameter bit                 ERROR_STATUS      = 0,
+  parameter bit [BUS_WIDTH-1:0] DEFAULT_READ_DATA = '0
 )(
   input logic             i_clk,
   input logic             i_rst_n,
@@ -38,7 +38,8 @@ module rggen_adapter_common
   end endgenerate
 
   //  Response
-  localparam  int STATUS_WIDTH  = $bits(rggen_status);
+  localparam  rggen_status  DEFAULT_STATUS  =(ERROR_STATUS) ? RGGEN_SLAVE_ERROR : RGGEN_OKAY;
+  localparam  int           STATUS_WIDTH    = $bits(rggen_status);
 
   logic [REGISTERS-0:0]     ready;
   logic [REGISTERS-1:0]     active;
@@ -46,8 +47,8 @@ module rggen_adapter_common
   logic [BUS_WIDTH-1:0]     read_data[REGISTERS+1];
 
   assign  ready[REGISTERS]      = ~|active;
-  assign  status[REGISTERS]     = ERROR_STATUS;
-  assign  read_data[REGISTERS]  = ERROR_DATA;
+  assign  status[REGISTERS]     = DEFAULT_STATUS;
+  assign  read_data[REGISTERS]  = DEFAULT_READ_DATA;
 
   generate for (i = 0;i < REGISTERS;++i) begin : g_response
     assign  ready[i]      = register_if[i].ready;
