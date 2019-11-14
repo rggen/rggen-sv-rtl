@@ -38,7 +38,7 @@ module rggen_adapter_common
   end endgenerate
 
   //  Response
-  localparam  rggen_status  DEFAULT_STATUS  =(ERROR_STATUS) ? RGGEN_SLAVE_ERROR : RGGEN_OKAY;
+  localparam  rggen_status  DEFAULT_STATUS  = (ERROR_STATUS) ? RGGEN_SLAVE_ERROR : RGGEN_OKAY;
   localparam  int           STATUS_WIDTH    = $bits(rggen_status);
 
   logic [REGISTERS-0:0]     ready;
