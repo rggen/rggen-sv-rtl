@@ -46,7 +46,7 @@ module rggen_adapter_common
   logic [STATUS_WIDTH-1:0]  status[REGISTERS+1];
   logic [BUS_WIDTH-1:0]     read_data[REGISTERS+1];
 
-  assign  ready[REGISTERS]      = ~|active;
+  assign  ready[REGISTERS]      = ~|{1'b0, active};
   assign  status[REGISTERS]     = DEFAULT_STATUS;
   assign  read_data[REGISTERS]  = DEFAULT_READ_DATA;
 
@@ -63,4 +63,19 @@ module rggen_adapter_common
   assign  bus_if.ready      = |ready;
   assign  bus_if.status     = rggen_status'(u_status_mux.mux(ready, status));
   assign  bus_if.read_data  = u_read_data_mux.mux(ready, read_data);
+
+`ifdef RGGEN_ENABLE_SVA
+  ast_hold_request_until_ready_is_high:
+  assert property (
+    @(posedge i_clk)
+    (bus_if.valid && (!bus_if.ready)) |=>
+      ($stable(bus_if.valid) && $stable(bus_if.address) && $stable(bus_if.write) && $stable(bus_if.write_data))
+  );
+
+  ast_only_one_register_is_selected:
+  assert property (
+    @(posedge i_clk)
+    (active != '0) |-> $onehot(active)
+  );
+`endif
 endmodule

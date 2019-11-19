@@ -25,7 +25,7 @@ module rggen_register_common #(
   logic [WORDS-1:0] match;
   logic             active;
 
-  assign  active  = (WORDS > 1) ? |match : match[0];
+  assign  active  = |{1'b0, match};
 
   generate for (g = 0;g < WORDS;++g) begin : g_decoder
     localparam  bit [ADDRESS_WIDTH-1:0]
@@ -181,5 +181,13 @@ module rggen_register_common #(
   assign  read_mask[1]    = '0;
   assign  write_mask[1]   = '0;
   assign  write_data[1]   = '0;
+`endif
+
+`ifdef RGGEN_ENABLE_SVA
+  ast_only_one_word_is_selected:
+  assert property (
+    @(posedge i_clk)
+    (match != '0) |-> $onehot(match)
+  );
 `endif
 endmodule
