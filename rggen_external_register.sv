@@ -51,7 +51,7 @@ module rggen_external_register #(
 
   //  Response
   assign  register_if.active    = match;
-  assign  register_if.ready     = bus_if.ready;
+  assign  register_if.ready     = (bus_if.valid) ? bus_if.ready : '0;
   assign  register_if.status    = bus_if.status;
   assign  register_if.read_data = bus_if.read_data;
   assign  register_if.value     = bus_if.read_data;
