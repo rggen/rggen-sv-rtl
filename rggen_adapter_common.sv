@@ -81,7 +81,7 @@ module rggen_adapter_common
   ast_assert_ready_of_active_register_only:
   assert property (
     @(posedge i_clk)
-    (bus_if.valid && (ready != '0)) |-> (active ==ready[REGISTERS-1:0])
+    (bus_if.valid && (ready != '0)) |-> (active == ready[REGISTERS-1:0])
   );
 `endif
 endmodule
