@@ -72,10 +72,16 @@ module rggen_adapter_common
       ($stable(bus_if.valid) && $stable(bus_if.address) && $stable(bus_if.write) && $stable(bus_if.write_data))
   );
 
-  ast_only_one_register_is_selected:
+  ast_only_one_register_is_active:
   assert property (
     @(posedge i_clk)
-    (active != '0) |-> $onehot(active)
+    (bus_if.valid && (active != '0)) |-> $onehot(active)
+  );
+
+  ast_assert_ready_of_active_register_only:
+  assert property (
+    @(posedge i_clk)
+    (bus_if.valid && (ready != '0)) |-> (active ==ready[REGISTERS-1:0])
   );
 `endif
 endmodule

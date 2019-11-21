@@ -187,7 +187,7 @@ module rggen_register_common #(
   ast_only_one_word_is_selected:
   assert property (
     @(posedge i_clk)
-    (match != '0) |-> $onehot(match)
+    (register_if.valid && (match != '0)) |-> $onehot(match)
   );
 `endif
 endmodule
