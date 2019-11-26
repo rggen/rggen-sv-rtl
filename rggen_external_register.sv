@@ -40,10 +40,19 @@ module rggen_external_register #(
     end
   end
 
-  always_ff @(posedge i_clk) begin
-    if (register_if.valid && match) begin
+  always_ff @(posedge i_clk, negedge i_rst_n) begin
+    if (!i_rst_n) begin
+      bus_if.address    <= '0;
+      bus_if.write      <= '0;
+    end
+    else if (register_if.valid && match) begin
       bus_if.address    <= register_if.address;
       bus_if.write      <= register_if.write;
+    end
+  end
+
+  always_ff @(posedge i_clk) begin
+    if (register_if.valid && match) begin
       bus_if.write_data <= register_if.write_data;
       bus_if.strobe     <= register_if.strobe;
     end
