@@ -13,7 +13,7 @@ module rggen_apb_bridge (
   assign  apb_if.penable  = (busy) ? bus_if.valid : '0;
   assign  apb_if.paddr    = bus_if.address;
   assign  apb_if.pprot    = '0;
-  assign  apb_if.pwrite   = bus_if.write;
+  assign  apb_if.pwrite   = bus_if.access[RGGEN_ACCESS_DATA_BIT];
   assign  apb_if.pstrb    = bus_if.strobe;
   assign  apb_if.pwdata   = bus_if.write_data;
 

@@ -1,4 +1,6 @@
-module rggen_register_common #(
+module rggen_register_common
+  import  rggen_rtl_pkg::*;
+#(
   parameter bit                     READABLE        = 1,
   parameter bit                     WRITABLE        = 1,
   parameter int                     ADDRESS_WIDTH   = 8,
@@ -44,7 +46,7 @@ module rggen_register_common #(
       .END_ADDRESS    (END_ADDRESS    )
     ) u_decoder (
       .i_address          (register_if.address  ),
-      .i_write            (register_if.write    ),
+      .i_access           (register_if.access   ),
       .i_additional_match (i_additional_match   ),
       .o_match            (match[g]             )
     );
@@ -64,15 +66,15 @@ module rggen_register_common #(
   assign  bit_field_if.write_data = (backdoor_valid) ? write_data[1] : write_data[0];
 
   assign  frontdoor_valid = (active) ? register_if.valid : '0;
-  assign  read_mask[0]    = get_mask(1'b0, READABLE, match, register_if.write, {BUS_BYTE_WIDTH{1'b1}});
-  assign  write_mask[0]   = get_mask(1'b1, WRITABLE, match, register_if.write, register_if.strobe    );
+  assign  read_mask[0]    = get_mask(1'b0, READABLE, match, register_if.access, {BUS_BYTE_WIDTH{1'b1}});
+  assign  write_mask[0]   = get_mask(1'b1, WRITABLE, match, register_if.access, register_if.strobe    );
   assign  write_data[0]   = (WRITABLE) ? {WORDS{register_if.write_data}} : '0;
 
   function automatic logic [DATA_WIDTH-1:0] get_mask(
-    logic                       access_type,
+    logic                       write_access,
     logic                       accessible,
     logic [WORDS-1:0]           match,
-    logic                       write,
+    rggen_access                access,
     logic [BUS_BYTE_WIDTH-1:0]  strobe
   );
     logic [DATA_WIDTH-1:0]  mask;
@@ -80,7 +82,7 @@ module rggen_register_common #(
     for (int i = 0;i < WORDS;++i) begin
       for (int j = 0;j < BUS_BYTE_WIDTH;++j) begin
         mask[i*BUS_WIDTH+8*j+:8] = (
-          accessible && (write == access_type) && match[i]
+          accessible && (access[RGGEN_ACCESS_DATA_BIT] == write_access) && match[i]
         ) ? {8{strobe[j]}} : '0;
       end
     end
@@ -91,7 +93,7 @@ module rggen_register_common #(
   //  Response
   assign  register_if.active    = active;
   assign  register_if.ready     = (!backdoor_valid) ? active : '0;
-  assign  register_if.status    = rggen_rtl_pkg::RGGEN_OKAY;
+  assign  register_if.status    = RGGEN_OKAY;
   assign  register_if.read_data = get_read_data(match, bit_field_if.read_data);
   assign  register_if.value     = get_valid_value(bit_field_if.value);
 

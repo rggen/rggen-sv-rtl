@@ -5,8 +5,8 @@ interface rggen_bus_if #(
   import  rggen_rtl_pkg::*;
 
   logic                     valid;
+  rggen_access              access;
   logic [ADDRESS_WIDTH-1:0] address;
-  logic                     write;
   logic [BUS_WIDTH-1:0]     write_data;
   logic [BUS_WIDTH/8-1:0]   strobe;
   logic                     ready;
@@ -15,8 +15,8 @@ interface rggen_bus_if #(
 
   modport master (
     output  valid,
+    output  access,
     output  address,
-    output  write,
     output  write_data,
     output  strobe,
     input   ready,
@@ -26,8 +26,8 @@ interface rggen_bus_if #(
 
   modport slave (
     input   valid,
+    input   access,
     input   address,
-    input   write,
     input   write_data,
     input   strobe,
     output  ready,
@@ -37,8 +37,8 @@ interface rggen_bus_if #(
 
   modport monitor (
     input valid,
+    input access,
     input address,
-    input write,
     input write_data,
     input strobe,
     input ready,

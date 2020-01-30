@@ -31,8 +31,8 @@ module rggen_adapter_common
   //  Request
   generate for (i = 0;i < REGISTERS;++i) begin : g_request
     assign  register_if[i].valid      = (bus_if.valid && (!busy)) ? '1 : '0;
+    assign  register_if[i].access     = bus_if.access;
     assign  register_if[i].address    = bus_if.address;
-    assign  register_if[i].write      = bus_if.write;
     assign  register_if[i].write_data = bus_if.write_data;
     assign  register_if[i].strobe     = bus_if.strobe;
   end endgenerate
@@ -69,7 +69,10 @@ module rggen_adapter_common
   assert property (
     @(posedge i_clk)
     (bus_if.valid && (!bus_if.ready)) |=>
-      ($stable(bus_if.valid) && $stable(bus_if.address) && $stable(bus_if.write) && $stable(bus_if.write_data))
+      (
+        $stable(bus_if.valid) && $stable(bus_if.access) &&
+        $stable(bus_if.address) && $stable(bus_if.write_data)
+      )
   );
 
   ast_only_one_register_is_active:
