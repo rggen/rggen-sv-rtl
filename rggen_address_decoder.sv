@@ -1,4 +1,6 @@
-module rggen_address_decoder #(
+module rggen_address_decoder
+  import  rggen_rtl_pkg::*;
+#(
   parameter bit             READABLE      = 1,
   parameter bit             WRITABLE      = 1,
   parameter int             WIDTH         = 8,
@@ -7,7 +9,7 @@ module rggen_address_decoder #(
   parameter bit [WIDTH-1:0] END_ADDRESS   = '0
 )(
   input   logic [WIDTH-1:0] i_address,
-  input   logic             i_write,
+  input   rggen_access      i_access,
   input   logic             i_additional_match,
   output  logic             o_match
 );
@@ -30,10 +32,10 @@ module rggen_address_decoder #(
       assign  access_match  = '1;
     end
     else if (READABLE) begin : g_access_matcher
-      assign  access_match  = (!i_write) ? '1 : '0;
+      assign  access_match  = (!i_access[RGGEN_ACCESS_DATA_BIT]);
     end
     else begin : g_access_matcher
-      assign  access_match  = i_write;
+      assign  access_match  = i_access[RGGEN_ACCESS_DATA_BIT];
     end
   endgenerate
 

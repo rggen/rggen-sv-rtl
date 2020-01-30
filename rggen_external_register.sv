@@ -1,4 +1,6 @@
-module rggen_external_register #(
+module rggen_external_register
+  import  rggen_rtl_pkg::*;
+#(
   parameter int                     ADDRESS_WIDTH = 8,
   parameter int                     BUS_WIDTH     = 32,
   parameter bit [ADDRESS_WIDTH-1:0] START_ADDRESS = '0,
@@ -22,7 +24,7 @@ module rggen_external_register #(
     .END_ADDRESS    (END_ADDRESS    )
   ) u_decoder (
     .i_address          (register_if.address  ),
-    .i_write            (register_if.write    ),
+    .i_access           (register_if.access   ),
     .i_additional_match (1'b1                 ),
     .o_match            (match                )
   );
@@ -42,12 +44,12 @@ module rggen_external_register #(
 
   always_ff @(posedge i_clk, negedge i_rst_n) begin
     if (!i_rst_n) begin
-      bus_if.address    <= '0;
-      bus_if.write      <= '0;
+      bus_if.address  <= '0;
+      bus_if.access   <= RGGEN_READ;
     end
     else if (register_if.valid && match) begin
-      bus_if.address    <= register_if.address;
-      bus_if.write      <= register_if.write;
+      bus_if.address  <= register_if.address;
+      bus_if.access   <= register_if.access;
     end
   end
 

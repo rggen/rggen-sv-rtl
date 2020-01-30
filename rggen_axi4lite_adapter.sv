@@ -24,8 +24,8 @@ module rggen_axi4lite_adapter
 
   logic [1:0]               request_valid;
   logic [2:0]               request_ready;
+  rggen_access              access;
   logic [ADDRESS_WIDTH-1:0] address;
-  logic                     write;
   logic [BUS_WIDTH-1:0]     write_data;
   logic [BUS_WIDTH/8-1:0]   strobe;
 
@@ -37,12 +37,12 @@ module rggen_axi4lite_adapter
   assign  bus_if.valid
     = (state == BUS_ACCESS_BUSY) ? '1
     : (state == IDLE           ) ? |request_valid : '0;
+  assign  bus_if.access
+    = ((state == IDLE) && request_valid[0]) ? RGGEN_WRITE
+    : ((state == IDLE) && request_valid[1]) ? RGGEN_READ  : access;
   assign  bus_if.address
     = ((state == IDLE) && request_valid[0]) ? axi4lite_if.awaddr
     : ((state == IDLE) && request_valid[1]) ? axi4lite_if.araddr : address;
-  assign  bus_if.write
-    = ((state == IDLE) && request_valid[0]) ? '1
-    : ((state == IDLE) && request_valid[1]) ? '0 : write;
   assign  bus_if.write_data
     = ((state == IDLE) && request_valid[0]) ? axi4lite_if.wdata : write_data;
   assign  bus_if.strobe
@@ -55,8 +55,8 @@ module rggen_axi4lite_adapter
 
   always_ff @(posedge i_clk) begin
     if ((state == IDLE) && (request_valid != '0)) begin
+      access      <= bus_if.access;
       address     <= bus_if.address;
-      write       <= bus_if.write;
       write_data  <= bus_if.write_data;
       strobe      <= bus_if.strobe;
     end
@@ -135,7 +135,9 @@ module rggen_axi4lite_adapter
       response_valid  <= 2'b00;
     end
     else if (bus_if.valid && bus_if.ready) begin
-      response_valid  <= (bus_if.write) ? 2'b01 : 2'b10;
+      response_valid  <= (
+        bus_if.access[RGGEN_ACCESS_DATA_BIT]
+      ) ? 2'b01 : 2'b10;
     end
   end
 
