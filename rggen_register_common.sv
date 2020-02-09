@@ -16,10 +16,11 @@ module rggen_register_common
   input logic                 i_additional_match,
   rggen_bit_field_if.register bit_field_if
 );
-  localparam  int WORDS           = DATA_WIDTH / BUS_WIDTH;
-  localparam  int BUS_BYTE_WIDTH  = BUS_WIDTH / 8;
-  localparam  int DATA_BYTE_WIDTH = DATA_WIDTH / 8;
-  localparam  int ADDRESS_LSB     = $clog2(BUS_BYTE_WIDTH);
+  localparam  int WORDS             = DATA_WIDTH / BUS_WIDTH;
+  localparam  int BUS_BYTE_WIDTH    = BUS_WIDTH / 8;
+  localparam  int DATA_BYTE_WIDTH   = DATA_WIDTH / 8;
+  localparam  int ADDRESS_LSB       = $clog2(BUS_BYTE_WIDTH);
+  localparam  int WORD_INDEX_WIDTH  = (WORDS >= 2) ? $clog2(WORDS) : 1;
 
   genvar  g;
 
@@ -91,17 +92,20 @@ module rggen_register_common
   endfunction
 
   //  Response
+  logic [WORD_INDEX_WIDTH-1:0]  word_index;
+
   assign  register_if.active    = active;
   assign  register_if.ready     = (!backdoor_valid) ? active : '0;
   assign  register_if.status    = RGGEN_OKAY;
-  assign  register_if.read_data = get_read_data(match, bit_field_if.read_data);
+  assign  register_if.read_data = get_read_data(word_index, bit_field_if.read_data);
   assign  register_if.value     = get_valid_value(bit_field_if.value);
 
-  rggen_mux #(BUS_WIDTH, WORDS) u_read_data_mux();
+  rggen_onehot #(WORDS) u_onehot();
+  assign  word_index  = u_onehot.to_binary(match);
 
   function automatic logic [BUS_WIDTH-1:0] get_read_data(
-    logic [WORDS-1:0]       match,
-    logic [DATA_WIDTH-1:0]  read_data
+    logic [WORD_INDEX_WIDTH-1:0]  word_index,
+    logic [DATA_WIDTH-1:0]        read_data
   );
     if (READABLE) begin
       logic [BUS_WIDTH-1:0] data[WORDS];
@@ -114,7 +118,7 @@ module rggen_register_common
         end
       end
 
-      return u_read_data_mux.mux(match, data);
+      return data[word_index];
     end
     else begin
       return '0;

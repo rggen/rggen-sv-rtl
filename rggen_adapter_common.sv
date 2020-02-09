@@ -38,13 +38,15 @@ module rggen_adapter_common
   end endgenerate
 
   //  Response
-  localparam  rggen_status  DEFAULT_STATUS  = (ERROR_STATUS) ? RGGEN_SLAVE_ERROR : RGGEN_OKAY;
-  localparam  int           STATUS_WIDTH    = $bits(rggen_status);
+  localparam  rggen_status  DEFAULT_STATUS        = (ERROR_STATUS) ? RGGEN_SLAVE_ERROR : RGGEN_OKAY;
+  localparam  int           RESPONSES             = REGISTERS + 1;
+  localparam  int           RESPONSES_INDEX_WIDTH = $clog2(RESPONSES);
 
-  logic [REGISTERS-0:0]     ready;
-  logic [REGISTERS-1:0]     active;
-  logic [STATUS_WIDTH-1:0]  status[REGISTERS+1];
-  logic [BUS_WIDTH-1:0]     read_data[REGISTERS+1];
+  logic [REGISTERS-0:0]             ready;
+  logic [REGISTERS-1:0]             active;
+  rggen_status                      status[RESPONSES];
+  logic [BUS_WIDTH-1:0]             read_data[RESPONSES];
+  logic [RESPONSES_INDEX_WIDTH-1:0] response_index;
 
   assign  ready[REGISTERS]      = ~|{1'b0, active};
   assign  status[REGISTERS]     = DEFAULT_STATUS;
@@ -57,12 +59,12 @@ module rggen_adapter_common
     assign  read_data[i]  = register_if[i].read_data;
   end endgenerate
 
-  rggen_mux #(STATUS_WIDTH, REGISTERS + 1) u_status_mux();
-  rggen_mux #(BUS_WIDTH   , REGISTERS + 1) u_read_data_mux();
-
   assign  bus_if.ready      = |ready;
-  assign  bus_if.status     = rggen_status'(u_status_mux.mux(ready, status));
-  assign  bus_if.read_data  = u_read_data_mux.mux(ready, read_data);
+  assign  bus_if.status     = status[response_index];
+  assign  bus_if.read_data  = read_data[response_index];
+
+  rggen_onehot #(RESPONSES) u_onehot();
+  assign  response_index  = u_onehot.to_binary(ready);
 
 `ifdef RGGEN_ENABLE_SVA
   ast_hold_request_until_ready_is_high:
