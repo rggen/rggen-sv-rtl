@@ -9,12 +9,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install svlint
-        run: |
-          sudo snap install svlint --edge
-
       - name: Run svlint
-        run: |
-          svlint -v -f ${RGGEN_SV_RTL_ROOT}/compile.f
+        uses: dalance/svlint-action@v1
+        with:
+          filelists: |
+            compile.f
         env:
           RGGEN_SV_RTL_ROOT: ${{ github.workspace }}
