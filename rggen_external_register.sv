@@ -48,10 +48,16 @@ module rggen_external_register
       bus_if.access   <= RGGEN_READ;
     end
     else if (register_if.valid && match) begin
-      bus_if.address  <= register_if.address;
+      bus_if.address  <= get_bus_address(register_if.address);
       bus_if.access   <= register_if.access;
     end
   end
+
+  function automatic logic [ADDRESS_WIDTH-1:0] get_bus_address(
+    logic [ADDRESS_WIDTH-1:0] address
+  );
+    return address - START_ADDRESS;
+  endfunction
 
   always_ff @(posedge i_clk) begin
     if (register_if.valid && match) begin
