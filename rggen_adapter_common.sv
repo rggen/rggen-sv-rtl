@@ -1,10 +1,15 @@
 module rggen_adapter_common
   import  rggen_rtl_pkg::*;
 #(
-  parameter int                 BUS_WIDTH         = 32,
-  parameter int                 REGISTERS         = 1,
-  parameter bit                 ERROR_STATUS      = 0,
-  parameter bit [BUS_WIDTH-1:0] DEFAULT_READ_DATA = '0
+  parameter int                     ADDRESS_WIDTH       = 8,
+  parameter int                     LOCAL_ADDRESS_WIDTH = 8,
+  parameter int                     BUS_WIDTH           = 32,
+  parameter int                     REGISTERS           = 1,
+  parameter bit                     PRE_DECODE          = 0,
+  parameter bit [ADDRESS_WIDTH-1:0] BASE_ADDRESS        = '0,
+  parameter int                     BYTE_SIZE           = 256,
+  parameter bit                     ERROR_STATUS        = 0,
+  parameter bit [BUS_WIDTH-1:0]     DEFAULT_READ_DATA   = '0
 )(
   input logic             i_clk,
   input logic             i_rst_n,
@@ -28,11 +33,24 @@ module rggen_adapter_common
     end
   end
 
+  //  Pre-decode
+  localparam  bit [ADDRESS_WIDTH-1:0] END_ADDRESS = BASE_ADDRESS + BYTE_SIZE - 1;
+
+  logic in_valid_range;
+
+  generate if (PRE_DECODE) begin : g_pre_decode
+    assign  in_valid_range  =
+      ((bus_if.address >= BASE_ADDRESS) && (bus_if.address <= END_ADDRESS)) ? '1 : '0;
+  end
+  else begin : g_no_pre_decode
+    assign  in_valid_range  = '1;
+  end endgenerate
+
   //  Request
   generate for (i = 0;i < REGISTERS;++i) begin : g_request
-    assign  register_if[i].valid      = (bus_if.valid && (!busy)) ? '1 : '0;
+    assign  register_if[i].valid      = (bus_if.valid && in_valid_range && (!busy)) ? '1 : '0;
     assign  register_if[i].access     = bus_if.access;
-    assign  register_if[i].address    = bus_if.address;
+    assign  register_if[i].address    = bus_if.address[LOCAL_ADDRESS_WIDTH-1:0];
     assign  register_if[i].write_data = bus_if.write_data;
     assign  register_if[i].strobe     = bus_if.strobe;
   end endgenerate
@@ -53,8 +71,8 @@ module rggen_adapter_common
   assign  read_data[REGISTERS]  = DEFAULT_READ_DATA;
 
   generate for (i = 0;i < REGISTERS;++i) begin : g_response
-    assign  ready[i]      = register_if[i].ready;
-    assign  active[i]     = register_if[i].active;
+    assign  ready[i]      = (in_valid_range) ? register_if[i].ready  : '0;
+    assign  active[i]     = (in_valid_range) ? register_if[i].active : '0;
     assign  status[i]     = register_if[i].status;
     assign  read_data[i]  = register_if[i].read_data;
   end endgenerate
