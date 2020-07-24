@@ -12,12 +12,14 @@ module rggen_axi4lite_bridge (
   //  Request
   assign  write_access        = bus_if.access[RGGEN_ACCESS_DATA_BIT];
   assign  axi4lite_if.awvalid = ((!request_done[0]) && write_access) ? bus_if.valid : '0;
+  assign  axi4lite_if.awid    = '0;
   assign  axi4lite_if.awaddr  = bus_if.address;
   assign  axi4lite_if.awprot  = '0;
   assign  axi4lite_if.wvalid  = ((!request_done[1]) && write_access) ? bus_if.valid : '0;
   assign  axi4lite_if.wdata   = bus_if.write_data;
   assign  axi4lite_if.wstrb   = bus_if.strobe;
   assign  axi4lite_if.arvalid = (!(request_done[2] || write_access)) ? bus_if.valid : '0;
+  assign  axi4lite_if.arid    = '0;
   assign  axi4lite_if.araddr  = bus_if.address;
   assign  axi4lite_if.arprot  = '0;
 

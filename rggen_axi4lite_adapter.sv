@@ -1,6 +1,7 @@
 module rggen_axi4lite_adapter
   import  rggen_rtl_pkg::*;
 #(
+  parameter int                     ID_WIDTH            = 0,
   parameter int                     ADDRESS_WIDTH       = 8,
   parameter int                     LOCAL_ADDRESS_WIDTH = 8,
   parameter int                     BUS_WIDTH           = 32,
@@ -17,6 +18,8 @@ module rggen_axi4lite_adapter
   rggen_axi4lite_if.slave axi4lite_if,
   rggen_register_if.host  register_if[REGISTERS]
 );
+  localparam  int ACTUAL_ID_WIDTH = (ID_WIDTH > 0) ? ID_WIDTH : 1;
+
   typedef enum logic [1:0] {
     IDLE,
     BUS_ACCESS_BUSY,
@@ -116,14 +119,17 @@ module rggen_axi4lite_adapter
   endfunction
 
   //  Response
-  logic [1:0]           response_valid;
-  logic                 response_ack;
-  logic [BUS_WIDTH-1:0] read_data;
-  logic [1:0]           status;
+  logic [1:0]                 response_valid;
+  logic                       response_ack;
+  logic [ACTUAL_ID_WIDTH-1:0] id;
+  logic [BUS_WIDTH-1:0]       read_data;
+  logic [1:0]                 status;
 
   assign  axi4lite_if.bvalid  = response_valid[0];
+  assign  axi4lite_if.bid     = id;
   assign  axi4lite_if.bresp   = status;
   assign  axi4lite_if.rvalid  = response_valid[1];
+  assign  axi4lite_if.rid     = id;
   assign  axi4lite_if.rdata   = read_data;
   assign  axi4lite_if.rresp   = status;
 
@@ -144,6 +150,22 @@ module rggen_axi4lite_adapter
       ) ? 2'b01 : 2'b10;
     end
   end
+
+  generate if (ID_WIDTH > 0) begin : g_id
+    always_ff @(posedge i_clk, negedge i_rst_n) begin
+      if (!i_rst_n) begin
+        id  <= '0;
+      end
+      else begin
+        id  <=
+          (axi4lite_if.awvalid && axi4lite_if.awready) ? axi4lite_if.awid :
+          (axi4lite_if.arvalid && axi4lite_if.arready) ? axi4lite_if.arid : id;
+      end
+    end
+  end
+  else begin : g_no_id
+    assign  id  = '0;
+  end endgenerate
 
   always_ff @(posedge i_clk) begin
     if (bus_if.valid && bus_if.ready) begin
