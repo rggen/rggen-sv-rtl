@@ -143,6 +143,7 @@ module rggen_register_common
   assign  write_mask[1]         = backdoor_if.write_mask;
   assign  write_data[1]         = backdoor_if.write_data;
   assign  backdoor_if.read_data = bit_field_if.read_data;
+  assign  backdoor_if.value     = bit_field_if.value;
 
   always_ff @(posedge i_clk, negedge i_rst_n) begin
     if (!i_rst_n) begin

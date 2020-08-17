@@ -22,6 +22,7 @@ interface rggen_backdoor_if(
   rggen_backdoor_data write_mask;
   rggen_backdoor_data write_data;
   rggen_backdoor_data read_data;
+  rggen_backdoor_data value;
 
   clocking backdoor_cb @(posedge i_clk);
     output  valid;
@@ -29,6 +30,7 @@ interface rggen_backdoor_if(
     output  write_mask;
     output  write_data;
     input   read_data;
+    input   value;
   endclocking
 
   event at_clock_edge;
@@ -86,6 +88,10 @@ interface rggen_backdoor_if(
 
   function automatic rggen_backdoor_data get_read_data();
     return backdoor_cb.read_data;
+  endfunction
+
+  function automatic rggen_backdoor_data get_value();
+    return backdoor_cb.value;
   endfunction
 
   task automatic wait_for_change();
