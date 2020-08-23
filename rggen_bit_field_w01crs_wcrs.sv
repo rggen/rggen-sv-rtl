@@ -1,5 +1,5 @@
-module rggen_bit_field_w01src #(
-  parameter bit             SET_VALUE     = '0,
+module rggen_bit_field_w01crs_wcrs #(
+  parameter bit [1:0]       CLEAR_VALUE   = 2'b00,
   parameter int             WIDTH         = 1,
   parameter bit [WIDTH-1:0] INITIAL_VALUE = '0
 )(
@@ -34,17 +34,17 @@ module rggen_bit_field_w01src #(
     write_mask  = bit_field_if.write_mask;
     write_data  = bit_field_if.write_data;
 
+    clear = '0;
+    set   = '0;
     if (read_mask != '0) begin
-      clear = '1;
-      set   = '0;
+      set   = '1;
     end
     else if (write_mask != '0) begin
-      clear = '0;
-      set   = write_mask & ((SET_VALUE) ? write_data : ~write_data);
-    end
-    else begin
-      clear = '0;
-      set   = '0;
+      case (CLEAR_VALUE)
+        2'b00:    clear = write_mask & (~write_data);
+        2'b01:    clear = write_mask &   write_data;
+        default:  clear = '1;
+      endcase
     end
 
     return (value & (~clear)) | set;
