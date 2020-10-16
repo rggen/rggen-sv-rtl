@@ -137,25 +137,21 @@ module rggen_register_common
 
 `ifdef RGGEN_ENABLE_BACKDOOR
   //  Backdoor access
-  rggen_backdoor_if backdoor_if (i_clk, i_rst_n);
-  assign  backdoor_valid        = backdoor_if.valid;
-  assign  read_mask[1]          = backdoor_if.read_mask;
-  assign  write_mask[1]         = backdoor_if.write_mask;
-  assign  write_data[1]         = backdoor_if.write_data;
-  assign  backdoor_if.read_data = bit_field_if.read_data;
-  assign  backdoor_if.value     = bit_field_if.value;
-
-  always_ff @(posedge i_clk, negedge i_rst_n) begin
-    if (!i_rst_n) begin
-      pending_valid <= '0;
-    end
-    else if (register_if.ready) begin
-      pending_valid <= '0;
-    end
-    else if (backdoor_valid && frontdoor_valid) begin
-      pending_valid <= '1;
-    end
-  end
+  rggen_backdoor #(
+    .DATA_WIDTH (DATA_WIDTH )
+  ) u_backdoor (
+    .i_clk              (i_clk                  ),
+    .i_rst_n            (i_rst_n                ),
+    .i_frontdoor_valid  (frontdoor_valid        ),
+    .i_frontdoor_ready  (register_if.ready      ),
+    .o_backdoor_valid   (backdoor_valid         ),
+    .o_pending_valid    (pending_valid          ),
+    .o_read_mask        (read_mask[1]           ),
+    .o_write_mask       (write_mask[1]          ),
+    .o_write_data       (write_data[1]          ),
+    .i_read_data        (bit_field_if.read_data ),
+    .i_value            (bit_field_if.value     )
+  );
 `else
   assign  backdoor_valid  = '0;
   assign  pending_valid   = '0;

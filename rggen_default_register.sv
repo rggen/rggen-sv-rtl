@@ -29,12 +29,4 @@ module rggen_default_register #(
     .i_additional_match (1'b1         ),
     .bit_field_if       (bit_field_if )
   );
-
-`ifdef RGGEN_ENABLE_BACKDOOR
-  initial begin
-    rggen_backdoor_pkg::set_backdoor_vif(
-      $sformatf("%m"), u_register_common.backdoor_if
-    );
-  end
-`endif
 endmodule

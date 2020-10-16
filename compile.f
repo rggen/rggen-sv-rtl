@@ -1,5 +1,4 @@
-${RGGEN_SV_RTL_ROOT}/rggen_backdoor_if.sv
-${RGGEN_SV_RTL_ROOT}/rggen_backdoor_pkg.sv
+-f ${RGGEN_SV_RTL_ROOT}/compile_backdoor.f
 ${RGGEN_SV_RTL_ROOT}/rggen_rtl_pkg.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_onehot.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_if.sv
