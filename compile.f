@@ -14,8 +14,8 @@ ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_rws.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_w01c_wc_woc.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_w01crs_wcrs.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_w01s_ws_wos.sv
-${RGGEN_SV_RTL_ROOT}/rggen_bit_field_w01t.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_w01src_wsrc.sv
+${RGGEN_SV_RTL_ROOT}/rggen_bit_field_w01t.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_w01trg.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_wrc.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_wrs.sv
