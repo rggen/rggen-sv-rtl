@@ -31,12 +31,8 @@ module rggen_register_common
   assign  active  = |{1'b0, match};
 
   generate for (g = 0;g < WORDS;++g) begin : g_decoder
-    localparam  bit [ADDRESS_WIDTH-1:0]
-      START_ADDRESS = OFFSET_ADDRESS
-                    + DATA_BYTE_WIDTH * REGISTER_INDEX
-                    + BUS_BYTE_WIDTH  * g;
-    localparam  bit [ADDRESS_WIDTH-1:0]
-      END_ADDRESS = START_ADDRESS + BUS_BYTE_WIDTH - 1;
+    localparam  bit [ADDRESS_WIDTH-1:0] START_ADDRESS = calc_start_address(g);
+    localparam  bit [ADDRESS_WIDTH-1:0] END_ADDRESS   = clac_end_address(g);
 
     rggen_address_decoder #(
       .READABLE       (READABLE       ),
@@ -53,6 +49,19 @@ module rggen_register_common
     );
   end endgenerate
 
+  function automatic bit [ADDRESS_WIDTH-1:0] calc_start_address(int index);
+    return
+      ADDRESS_WIDTH'(
+        OFFSET_ADDRESS  * 1              +
+        DATA_BYTE_WIDTH * REGISTER_INDEX +
+        BUS_BYTE_WIDTH  * index
+      );
+  endfunction
+
+  function automatic bit [ADDRESS_WIDTH-1:0] clac_end_address(int index);
+    return ADDRESS_WIDTH'(calc_start_address(index + 1) - 1);
+  endfunction
+
   //  Request
   logic                   frontdoor_valid;
   logic                   backdoor_valid;
@@ -61,7 +70,7 @@ module rggen_register_common
   logic [DATA_WIDTH-1:0]  write_mask[2];
   logic [DATA_WIDTH-1:0]  write_data[2];
 
-  assign  bit_field_if.valid      = (frontdoor_valid || backdoor_valid || pending_valid) ? '1 : '0;
+  assign  bit_field_if.valid      = frontdoor_valid || backdoor_valid || pending_valid;
   assign  bit_field_if.read_mask  = (backdoor_valid) ? read_mask[1]  : read_mask[0];
   assign  bit_field_if.write_mask = (backdoor_valid) ? write_mask[1] : write_mask[0];
   assign  bit_field_if.write_data = (backdoor_valid) ? write_data[1] : write_data[0];
@@ -92,48 +101,13 @@ module rggen_register_common
   endfunction
 
   //  Response
-  logic [WORD_INDEX_WIDTH-1:0]  word_index;
+  rggen_mux #(BUS_WIDTH, WORDS) u_read_data_mux();
 
   assign  register_if.active    = active;
-  assign  register_if.ready     = (!backdoor_valid) ? active : '0;
+  assign  register_if.ready     = (!backdoor_valid) && active;
   assign  register_if.status    = RGGEN_OKAY;
-  assign  register_if.read_data = get_read_data(word_index, bit_field_if.read_data);
-  assign  register_if.value     = get_valid_value(bit_field_if.value);
-
-  rggen_onehot #(WORDS) u_onehot();
-  assign  word_index  = u_onehot.to_binary(match);
-
-  function automatic logic [BUS_WIDTH-1:0] get_read_data(
-    logic [WORD_INDEX_WIDTH-1:0]  word_index,
-    logic [DATA_WIDTH-1:0]        read_data
-  );
-    if (READABLE) begin
-      logic [BUS_WIDTH-1:0] data[WORDS];
-
-      for (int i = 0;i < WORDS;++i) begin
-        for (int j = 0;j < BUS_WIDTH;++j) begin
-          data[i][j]  = (
-            VALID_BITS[BUS_WIDTH*i+j]
-          ) ? read_data[BUS_WIDTH*i+j] : '0;
-        end
-      end
-
-      return data[word_index];
-    end
-    else begin
-      return '0;
-    end
-  endfunction
-
-  function automatic logic [DATA_WIDTH-1:0] get_valid_value(
-    logic [DATA_WIDTH-1:0]  raw_value
-  );
-    logic [DATA_WIDTH-1:0]  value;
-    for (int i = 0;i < DATA_WIDTH;++i) begin
-      value[i]  = (VALID_BITS[i]) ? raw_value[i] : 1'b0;
-    end
-    return value;
-  endfunction
+  assign  register_if.read_data = u_read_data_mux.mux(match, VALID_BITS & bit_field_if.read_data);
+  assign  register_if.value     = VALID_BITS & bit_field_if.value;
 
 `ifdef RGGEN_ENABLE_BACKDOOR
   //  Backdoor access
