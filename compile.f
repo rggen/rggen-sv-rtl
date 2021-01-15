@@ -2,6 +2,7 @@
 ${RGGEN_SV_RTL_ROOT}/rggen_rtl_pkg.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_mux.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_if.sv
+${RGGEN_SV_RTL_ROOT}/rggen_bit_field.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_rc.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_reserved.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_ro.sv
