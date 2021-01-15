@@ -4,9 +4,8 @@ module rggen_bit_field
   parameter int                 WIDTH                     = 8,
   parameter bit [WIDTH-1:0]     INITIAL_VALUE             = '0,
   parameter rggen_sw_hw_access  PRECEDENCE_ACCESS         = RGGEN_SW_ACCESS,
-  parameter rggen_sw_action     SW_READ_ACTION            = RGGEN_READ_NONE,
+  parameter rggen_sw_action     SW_READ_ACTION            = RGGEN_READ_DEFAULT,
   parameter rggen_sw_action     SW_WRITE_ACTION           = RGGEN_WRITE_DEFAULT,
-  parameter bit                 SW_WRITE_ONLY             = '0,
   parameter bit                 SW_WRITE_ONCE             = '0,
   parameter rggen_polarity      SW_WRITE_ENABLE_POLARITY  = RGGEN_ACTIVE_HIGH,
   parameter rggen_polarity      HW_WRITE_ENABLE_POLARITY  = RGGEN_ACTIVE_HIGH,
@@ -37,23 +36,19 @@ module rggen_bit_field
     logic [WIDTH-1:0] write_mask,
     logic             write_done
   );
+    logic [1:0] action;
     logic [1:0] access;
     logic [1:0] update;
 
-    access[0] = '0;
-    if (SW_READ_ACTION != RGGEN_READ_NONE) begin
-      access[0] = (read_mask != '0);
-    end
+    action[0] = (SW_READ_ACTION  == RGGEN_READ_CLEAR) ||
+                (SW_READ_ACTION  == RGGEN_READ_SET  );
+    action[1] = (SW_WRITE_ACTION != RGGEN_WRITE_NONE);
 
-    access[1]  = '0;
-    if (SW_WRITE_ACTION != RGGEN_WRITE_NONE) begin
-      access[1]  =
-        (write_enable == SW_WRITE_ENABLE_POLARITY) &&
-        (write_mask   != '0                      );
-    end
+    access[0] = (read_mask  != '0);
+    access[1] = (write_mask != '0)  && (!write_done) && (write_enable == SW_WRITE_ENABLE_POLARITY);
 
-    update[0] = valid && access[0];
-    update[1] = valid && access[1] && (!write_done);
+    update[0] = valid && action[0] && access[0];
+    update[1] = valid && action[1] && access[1];
     return update;
   endfunction
 
@@ -180,6 +175,8 @@ module rggen_bit_field
 //--------------------------------------------------------------
 //  Body
 //--------------------------------------------------------------
+  localparam  bit SW_READABLE = SW_READ_ACTION != RGGEN_READ_NONE;
+
   logic [WIDTH-1:0] value;
   logic [WIDTH-1:0] value_masked;
   logic [WIDTH-1:0] read_data;
@@ -190,7 +187,7 @@ module rggen_bit_field
   assign  o_value_unmasked        = value;
 
   assign  value_masked  = value & i_mask;
-  assign  read_data     = (!SW_WRITE_ONLY) ? value_masked : '0;
+  assign  read_data     = (SW_READABLE) ? value_masked : '0;
 
   generate if (STORAGE) begin : g
     logic [1:0]       sw_update;

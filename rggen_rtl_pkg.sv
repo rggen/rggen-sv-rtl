@@ -27,6 +27,7 @@ package rggen_rtl_pkg;
 
   typedef enum logic [3:0] {
     RGGEN_READ_NONE,
+    RGGEN_READ_DEFAULT,
     RGGEN_READ_CLEAR,
     RGGEN_READ_SET,
     RGGEN_WRITE_NONE,
