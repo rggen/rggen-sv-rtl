@@ -45,7 +45,7 @@ module rggen_bit_field
     action[1] = (SW_WRITE_ACTION != RGGEN_WRITE_NONE);
 
     access[0] = (read_mask  != '0);
-    access[1] = (write_mask != '0)  && (!write_done) && (write_enable == SW_WRITE_ENABLE_POLARITY);
+    access[1] = (write_mask != '0)  && write_enable && (!write_done);
 
     update[0] = valid && action[0] && access[0];
     update[1] = valid && action[1] && access[1];
@@ -58,10 +58,7 @@ module rggen_bit_field
     logic [HW_CLEAR_WIDTH-1:0]  clear
   );
     logic update;
-    update  =
-      (write_enable == HW_WRITE_ENABLE_POLARITY) ||
-      (set          != '0                      ) ||
-      (clear        != '0                      );
+    update  = write_enable || (set != '0) || (clear != '0);
     return update;
   endfunction
 
@@ -80,7 +77,8 @@ module rggen_bit_field
     if (PRECEDENCE_ACCESS == RGGEN_SW_ACCESS) begin
       value =
         get_hw_next_value(
-          current_value, hw_write_enable, hw_write_data, hw_set, hw_clear
+          current_value, hw_write_enable, hw_write_data,
+          hw_set, hw_clear
         );
       value =
         get_sw_next_value(
@@ -94,7 +92,8 @@ module rggen_bit_field
         );
       value =
         get_hw_next_value(
-          value, hw_write_enable, hw_write_data, hw_set, hw_clear
+          value, hw_write_enable, hw_write_data,
+          hw_set, hw_clear
         );
     end
 
@@ -190,20 +189,23 @@ module rggen_bit_field
   assign  read_data     = (SW_READABLE) ? value_masked : '0;
 
   generate if (STORAGE) begin : g
+    logic             sw_write_enable;
     logic [1:0]       sw_update;
     logic             sw_write_done;
+    logic             hw_write_enable;
     logic             hw_update;
     logic [WIDTH-1:0] value_next;
+
+    assign  sw_write_enable = i_sw_write_enable == SW_WRITE_ENABLE_POLARITY;
+    assign  hw_write_enable = i_hw_write_enable == HW_WRITE_ENABLE_POLARITY;
 
     assign  sw_update =
       get_sw_update(
         bit_field_if.valid, bit_field_if.read_mask,
-        i_sw_write_enable, bit_field_if.write_mask, sw_write_done
+        sw_write_enable, bit_field_if.write_mask, sw_write_done
       );
     assign  hw_update =
-      get_hw_update(
-        i_hw_write_enable, i_hw_set, i_hw_clear
-      );
+      get_hw_update(hw_write_enable, i_hw_set, i_hw_clear);
 
     if (SW_WRITE_ONCE) begin : g_sw_write_done
       always_ff @(posedge i_clk, negedge i_rst_n) begin
@@ -222,7 +224,7 @@ module rggen_bit_field
     assign  value_next  =
       get_next_value(
         value, sw_update, bit_field_if.write_mask, bit_field_if.write_data,
-        i_hw_write_enable, i_hw_write_data, i_hw_set, i_hw_clear
+        hw_write_enable, i_hw_write_data, i_hw_set, i_hw_clear
       );
     always_ff @(posedge i_clk, negedge i_rst_n) begin
       if (!i_rst_n) begin
