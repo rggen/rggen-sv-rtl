@@ -14,4 +14,31 @@ package rggen_rtl_pkg;
     RGGEN_SLAVE_ERROR   = 2'b10,
     RGGEN_DECODE_ERROR  = 2'b11
   } rggen_status;
+
+  typedef enum logic {
+    RGGEN_SW_ACCESS,
+    RGGEN_HW_ACCESS
+  } rggen_sw_hw_access;
+
+  typedef enum logic {
+    RGGEN_ACTIVE_LOW  = 1'b0,
+    RGGEN_ACTIVE_HIGH = 1'b1
+  } rggen_polarity;
+
+  typedef enum logic [3:0] {
+    RGGEN_READ_NONE,
+    RGGEN_READ_DEFAULT,
+    RGGEN_READ_CLEAR,
+    RGGEN_READ_SET,
+    RGGEN_WRITE_NONE,
+    RGGEN_WRITE_DEFAULT,
+    RGGEN_WRITE_0_CLEAR,
+    RGGEN_WRITE_1_CLEAR,
+    RGGEN_WRITE_CLEAR,
+    RGGEN_WRITE_0_SET,
+    RGGEN_WRITE_1_SET,
+    RGGEN_WRITE_SET,
+    RGGEN_WRITE_0_TOGGLE,
+    RGGEN_WRITE_1_TOGGLE
+  } rggen_sw_action;
 endpackage
