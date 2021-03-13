@@ -7,17 +7,12 @@ interface rggen_mux #(
     logic [ENTRIES-1:0][WIDTH-1:0]  data
   );
     if (ENTRIES > 1) begin
-      logic [ENTRIES-1:0][WIDTH-1:0]  masked_data;
-      logic [WIDTH-1:0]               out;
-
-      for (int i = 0;i < ENTRIES;++i) begin
-        masked_data[i]  = {WIDTH{select[i]}} & data[i];
-      end
+      logic [WIDTH-1:0] out;
 
       for (int i = 0;i < WIDTH;++i) begin
         logic [ENTRIES-1:0] temp;
         for (int j = 0;j < ENTRIES;++j) begin
-          temp[j] = masked_data[j][i];
+          temp[j] = select[j] & data[j][i];
         end
         out[i]  = |temp;
       end
@@ -25,7 +20,7 @@ interface rggen_mux #(
       return out;
     end
     else begin
-      return data;
+      return data[0];
     end
   endfunction
 endinterface
