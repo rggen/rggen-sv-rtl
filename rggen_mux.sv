@@ -6,21 +6,22 @@ interface rggen_mux #(
     logic [ENTRIES-1:0]             select,
     logic [ENTRIES-1:0][WIDTH-1:0]  data
   );
+    logic [WIDTH-1:0] out;
+
     if (ENTRIES > 1) begin
-      logic [WIDTH-1:0] out;
-
-      for (int i = 0;i < WIDTH;++i) begin
-        logic [ENTRIES-1:0] temp;
-        for (int j = 0;j < ENTRIES;++j) begin
-          temp[j] = select[j] & data[j][i];
+      for (int i = 0;i < ENTRIES;++i) begin
+        if (i == 0) begin
+          out = ({WIDTH{select[i]}} & data[i]);
         end
-        out[i]  = |temp;
+        else begin
+          out = ({WIDTH{select[i]}} & data[i]) | out;
+        end
       end
-
-      return out;
     end
     else begin
-      return data[0];
+      out = data[0];
     end
+
+    return out;
   endfunction
 endinterface
