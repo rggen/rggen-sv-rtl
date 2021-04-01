@@ -66,30 +66,32 @@ module rggen_adapter_common
 
   //  Response
   localparam  rggen_status  DEFAULT_STATUS  = (ERROR_STATUS) ? RGGEN_SLAVE_ERROR : RGGEN_OKAY;
-  localparam  int           RESPONSES       = REGISTERS + 1;
 
-  rggen_mux #($bits(rggen_status), RESPONSES) u_status_mux();
-  rggen_mux #(BUS_WIDTH          , RESPONSES) u_read_data_mux();
+  rggen_mux #($bits(rggen_status), REGISTERS) u_status_mux();
+  rggen_mux #(BUS_WIDTH          , REGISTERS) u_read_data_mux();
 
   logic [REGISTERS-0:0]                           ready;
   logic [REGISTERS-1:0]                           active;
-  logic [RESPONSES-1:0][$bits(rggen_status)-1:0]  status;
-  logic [RESPONSES-1:0][BUS_WIDTH-1:0]            read_data;
-
-  assign  ready[REGISTERS]      = ~|{1'b0, active};
-  assign  status[REGISTERS]     = DEFAULT_STATUS;
-  assign  read_data[REGISTERS]  = DEFAULT_READ_DATA;
+  logic [REGISTERS-1:0][$bits(rggen_status)-1:0]  status;
+  logic [REGISTERS-1:0][BUS_WIDTH-1:0]            read_data;
+  logic                                           register_inactive;
+  rggen_status                                    register_status;
+  logic [BUS_WIDTH-1:0]                           register_read_data;
 
   generate for (i = 0;i < REGISTERS;++i) begin : g_response
-    assign  ready[i]      = inside_range && register_if[i].ready;
-    assign  active[i]     = inside_range && register_if[i].active;
+    assign  active[i]     = register_if[i].active;
+    assign  ready[i]      = register_if[i].ready;
     assign  status[i]     = register_if[i].status;
     assign  read_data[i]  = register_if[i].read_data;
   end endgenerate
 
-  assign  bus_if.ready      = |ready;
-  assign  bus_if.status     = rggen_status'(u_status_mux.mux(ready, status));
-  assign  bus_if.read_data  = u_read_data_mux.mux(ready, read_data);
+  assign  register_inactive   = (!inside_range) || (active == '0);
+  assign  register_status     = rggen_status'(u_status_mux.mux(active, status));
+  assign  register_read_data  = u_read_data_mux.mux(active, read_data);
+
+  assign  bus_if.ready      = (ready != '0) || register_inactive;
+  assign  bus_if.status     = (register_inactive) ? DEFAULT_STATUS    : register_status;
+  assign  bus_if.read_data  = (register_inactive) ? DEFAULT_READ_DATA : register_read_data;
 
 `ifdef RGGEN_ENABLE_SVA
   ast_hold_request_until_ready_is_high:
@@ -111,7 +113,7 @@ module rggen_adapter_common
   ast_assert_ready_of_active_register_only:
   assert property (
     @(posedge i_clk)
-    (bus_if.valid && (ready != '0)) |-> (active == ready[REGISTERS-1:0])
+    (bus_if.valid && (ready != '0)) |-> (active == ready)
   );
 `endif
 endmodule
