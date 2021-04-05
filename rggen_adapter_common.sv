@@ -70,7 +70,7 @@ module rggen_adapter_common
   rggen_mux #($bits(rggen_status), REGISTERS) u_status_mux();
   rggen_mux #(BUS_WIDTH          , REGISTERS) u_read_data_mux();
 
-  logic [REGISTERS-0:0]                           ready;
+  logic [REGISTERS-1:0]                           ready;
   logic [REGISTERS-1:0]                           active;
   logic [REGISTERS-1:0][$bits(rggen_status)-1:0]  status;
   logic [REGISTERS-1:0][BUS_WIDTH-1:0]            read_data;
