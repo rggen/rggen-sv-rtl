@@ -1,6 +1,7 @@
 `ifdef RGGEN_ENABLE_BACKDOOR
 module rggen_backdoor #(
-  parameter int DATA_WIDTH  = 32
+  parameter int DATA_WIDTH          = 32,
+  parameter bit INSIDE_VHDL_DESIGN  = 0
 )(
   input   logic                   i_clk,
   input   logic                   i_rst_n,
@@ -38,7 +39,7 @@ module rggen_backdoor #(
   end
 
   initial begin
-    rggen_backdoor_pkg::set_backdoor_vif($sformatf("%m"), backdoor_if);
+    rggen_backdoor_pkg::set_backdoor_vif($sformatf("%m"), INSIDE_VHDL_DESIGN, backdoor_if);
   end
 endmodule
 `endif
