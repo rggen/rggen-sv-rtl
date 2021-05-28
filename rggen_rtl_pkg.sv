@@ -41,4 +41,8 @@ package rggen_rtl_pkg;
     RGGEN_WRITE_0_TOGGLE,
     RGGEN_WRITE_1_TOGGLE
   } rggen_sw_action;
+
+  function automatic int rggen_clip_width(int width);
+    return (width > 0) ? width : 0;
+  endfunction
 endpackage
