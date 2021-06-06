@@ -18,16 +18,27 @@ module rggen_axi4lite_adapter
   rggen_axi4lite_if.slave axi4lite_if,
   rggen_register_if.host  register_if[REGISTERS]
 );
-  localparam  int ACTUAL_ID_WIDTH = (ID_WIDTH > 0) ? ID_WIDTH : 1;
-
   typedef enum logic [1:0] {
     IDLE,
     BUS_ACCESS_BUSY,
     WAIT_FOR_RESPONSE_READY
   } rggen_axi4lite_adapter_state;
 
-  rggen_bus_if #(ADDRESS_WIDTH, BUS_WIDTH)  bus_if();
-  rggen_axi4lite_adapter_state              state;
+  rggen_axi4lite_if #(ID_WIDTH, ADDRESS_WIDTH, BUS_WIDTH) buffer_if();
+  rggen_bus_if #(ADDRESS_WIDTH, BUS_WIDTH)                bus_if();
+  rggen_axi4lite_adapter_state                            state;
+
+  //  Input buffer
+  rggen_axi4lite_skid_buffer #(
+    .ID_WIDTH       (ID_WIDTH       ),
+    .ADDRESS_WIDTH  (ADDRESS_WIDTH  ),
+    .BUS_WIDTH      (BUS_WIDTH      )
+  ) u_buffer (
+    .i_clk      (i_clk        ),
+    .i_rst_n    (i_rst_n      ),
+    .slave_if   (axi4lite_if  ),
+    .master_if  (buffer_if    )
+  );
 
   logic [1:0]               request_valid;
   logic [2:0]               request_ready;
@@ -37,33 +48,59 @@ module rggen_axi4lite_adapter
   logic [BUS_WIDTH/8-1:0]   strobe;
 
   //  Request
-  assign  axi4lite_if.awready = request_ready[0];
-  assign  axi4lite_if.wready  = request_ready[1];
-  assign  axi4lite_if.arready = request_ready[2];
+  always_comb begin
+    buffer_if.awready = request_ready[0];
+    buffer_if.wready  = request_ready[1];
+    buffer_if.arready = request_ready[2];
+  end
 
-  assign  bus_if.valid
-    = (state == BUS_ACCESS_BUSY) ? '1
-    : (state == IDLE           ) ? |request_valid : '0;
-  assign  bus_if.access
-    = ((state == IDLE) && request_valid[0]) ? RGGEN_WRITE
-    : ((state == IDLE) && request_valid[1]) ? RGGEN_READ  : access;
-  assign  bus_if.address
-    = ((state == IDLE) && request_valid[0]) ? axi4lite_if.awaddr
-    : ((state == IDLE) && request_valid[1]) ? axi4lite_if.araddr : address;
-  assign  bus_if.write_data
-    = ((state == IDLE) && request_valid[0]) ? axi4lite_if.wdata : write_data;
-  assign  bus_if.strobe
-    = ((state == IDLE) && request_valid[0]) ? axi4lite_if.wstrb : strobe;
+  always_comb begin
+    bus_if.valid  =
+      ((state == IDLE) && (request_valid != '0)) ||
+      ((state == BUS_ACCESS_BUSY));
+  end
 
-  assign  request_valid =
-    get_request_valid(axi4lite_if.awvalid, axi4lite_if.wvalid, axi4lite_if.arvalid);
-  assign  request_ready =
-    get_request_ready(state, axi4lite_if.awvalid, axi4lite_if.wvalid, axi4lite_if.arvalid);
+  always_comb begin
+    if (state != IDLE) begin
+      bus_if.access     = access;
+      bus_if.address    = address;
+      bus_if.write_data = write_data;
+      bus_if.strobe     = strobe;
+    end
+    else if (request_valid[0]) begin
+      bus_if.access     = RGGEN_WRITE;
+      bus_if.address    = buffer_if.awaddr;
+      bus_if.write_data = buffer_if.wdata;
+      bus_if.strobe     = buffer_if.wstrb;
+    end
+    else begin
+      bus_if.access     = RGGEN_READ;
+      bus_if.address    = buffer_if.araddr;
+      bus_if.write_data = buffer_if.wdata;
+      bus_if.strobe     = buffer_if.wstrb;
+    end
+  end
+
+  always_comb begin
+    request_valid =
+      get_request_valid(buffer_if.awvalid, buffer_if.wvalid, buffer_if.arvalid);
+    request_ready =
+      get_request_ready(state, buffer_if.awvalid, buffer_if.wvalid, buffer_if.arvalid);
+  end
+
+  always_ff @(posedge i_clk, negedge i_rst_n) begin
+    if (!i_rst_n) begin
+      access  <= rggen_access'(0);
+      address <= '0;
+    end
+    else if ((state == IDLE) && (request_valid != '0)) begin
+      access  <= bus_if.access;
+      address <= bus_if.address;
+    end
+  end
 
   always_ff @(posedge i_clk) begin
     if ((state == IDLE) && (request_valid != '0)) begin
-      access      <= bus_if.access;
-      address     <= bus_if.address;
       write_data  <= bus_if.write_data;
       strobe      <= bus_if.strobe;
     end
@@ -78,12 +115,12 @@ module rggen_axi4lite_adapter
     logic read_valid;
 
     if (WRITE_FIRST) begin
-      write_valid = (awvalid && wvalid) ? '1 : '0;
-      read_valid  = (!write_valid) ? arvalid : '0;
+      write_valid = awvalid && wvalid;
+      read_valid  = arvalid && (!write_valid);
     end
     else begin
       read_valid  = arvalid;
-      write_valid = (awvalid && wvalid && (!read_valid)) ? '1 : '0;
+      write_valid = awvalid && wvalid && (!read_valid);
     end
 
     return {read_valid, write_valid};
@@ -103,12 +140,12 @@ module rggen_axi4lite_adapter
       if (WRITE_FIRST) begin
         awready = wvalid;
         wready  = awvalid;
-        arready = (awvalid && wvalid) ? '0 : '1;
+        arready = !(awvalid && wvalid);
       end
       else begin
         arready = '1;
-        awready = (!arvalid) ? wvalid  : '0;
-        wvalid  = (!arvalid) ? awvalid : '0;
+        awready = (!arvalid) && wvalid;
+        wvalid  = (!arvalid) && awvalid;
       end
 
       return {arready, wready, awready};
@@ -119,24 +156,31 @@ module rggen_axi4lite_adapter
   endfunction
 
   //  Response
-  logic [1:0]                 response_valid;
-  logic                       response_ack;
-  logic [ACTUAL_ID_WIDTH-1:0] id;
-  logic [BUS_WIDTH-1:0]       read_data;
-  logic [1:0]                 status;
+  logic [1:0]                             response_valid;
+  logic                                   response_ack;
+  logic [rggen_clip_width(ID_WIDTH)-1:0]  id;
+  logic [BUS_WIDTH-1:0]                   read_data;
+  logic [1:0]                             status;
 
-  assign  axi4lite_if.bvalid  = response_valid[0];
-  assign  axi4lite_if.bid     = id;
-  assign  axi4lite_if.bresp   = status;
-  assign  axi4lite_if.rvalid  = response_valid[1];
-  assign  axi4lite_if.rid     = id;
-  assign  axi4lite_if.rdata   = read_data;
-  assign  axi4lite_if.rresp   = status;
+  always_comb begin
+    buffer_if.bvalid  = response_valid[0];
+    buffer_if.bid     = id;
+    buffer_if.bresp   = status;
+  end
 
-  assign  response_ack  = (
-    (axi4lite_if.bvalid && axi4lite_if.bready) ||
-    (axi4lite_if.rvalid && axi4lite_if.rready)
-  ) ? '1 : '0;
+  always_comb begin
+    buffer_if.rvalid  = response_valid[1];
+    buffer_if.rid     = id;
+    buffer_if.rresp   = status;
+    buffer_if.rdata   = read_data;
+  end
+
+  always_comb begin
+    response_ack  =
+      (buffer_if.bvalid && buffer_if.bready) ||
+      (buffer_if.rvalid && buffer_if.rready);
+  end
+
   always_ff @(posedge i_clk, negedge i_rst_n) begin
     if (!i_rst_n) begin
       response_valid  <= 2'b00;
@@ -145,9 +189,12 @@ module rggen_axi4lite_adapter
       response_valid  <= 2'b00;
     end
     else if (bus_if.valid && bus_if.ready) begin
-      response_valid  <= (
-        bus_if.access[RGGEN_ACCESS_DATA_BIT]
-      ) ? 2'b01 : 2'b10;
+      if (bus_if.access[RGGEN_ACCESS_DATA_BIT]) begin
+        response_valid  <= 2'b01;
+      end
+      else begin
+        response_valid  <= 2'b10;
+      end
     end
   end
 
@@ -156,15 +203,18 @@ module rggen_axi4lite_adapter
       if (!i_rst_n) begin
         id  <= '0;
       end
-      else begin
-        id  <=
-          (axi4lite_if.awvalid && axi4lite_if.awready) ? axi4lite_if.awid :
-          (axi4lite_if.arvalid && axi4lite_if.arready) ? axi4lite_if.arid : id;
+      else if (buffer_if.awvalid && buffer_if.awready) begin
+        id  <= buffer_if.awid;
+      end
+      else if (buffer_if.arvalid && buffer_if.arready) begin
+        id  <= buffer_if.arid;
       end
     end
   end
   else begin : g_no_id
-    assign  id  = '0;
+    always_comb begin
+      id  = '0;
+    end
   end endgenerate
 
   always_ff @(posedge i_clk) begin
