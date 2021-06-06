@@ -43,6 +43,6 @@ package rggen_rtl_pkg;
   } rggen_sw_action;
 
   function automatic int rggen_clip_width(int width);
-    return (width > 0) ? width : 0;
+    return (width > 0) ? width : 1;
   endfunction
 endpackage
