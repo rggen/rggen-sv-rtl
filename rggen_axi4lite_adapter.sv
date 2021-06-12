@@ -18,15 +18,8 @@ module rggen_axi4lite_adapter
   rggen_axi4lite_if.slave axi4lite_if,
   rggen_register_if.host  register_if[REGISTERS]
 );
-  typedef enum logic [1:0] {
-    IDLE,
-    BUS_ACCESS_BUSY,
-    WAIT_FOR_RESPONSE_READY
-  } rggen_axi4lite_adapter_state;
-
   rggen_axi4lite_if #(ID_WIDTH, ADDRESS_WIDTH, BUS_WIDTH) buffer_if();
   rggen_bus_if #(ADDRESS_WIDTH, BUS_WIDTH)                bus_if();
-  rggen_axi4lite_adapter_state                            state;
 
   //  Input buffer
   rggen_axi4lite_skid_buffer #(
@@ -40,34 +33,24 @@ module rggen_axi4lite_adapter
     .master_if  (buffer_if    )
   );
 
-  logic [1:0]               request_valid;
-  logic [2:0]               request_ready;
-  rggen_access              access;
-  logic [ADDRESS_WIDTH-1:0] address;
-  logic [BUS_WIDTH-1:0]     write_data;
-  logic [BUS_WIDTH/8-1:0]   strobe;
+  logic [1:0]                             request_valid;
+  logic [2:0]                             request_ready;
+  logic [1:0]                             response_valid;
+  logic                                   response_ack;
+  logic [rggen_clip_width(ID_WIDTH)-1:0]  id;
+  logic [BUS_WIDTH-1:0]                   read_data;
+  logic [1:0]                             status;
 
   //  Request
   always_comb begin
-    buffer_if.awready = request_ready[0];
-    buffer_if.wready  = request_ready[1];
-    buffer_if.arready = request_ready[2];
+    buffer_if.awready = bus_if.ready && request_ready[0] && (response_valid == '0);
+    buffer_if.wready  = bus_if.ready && request_ready[1] && (response_valid == '0);
+    buffer_if.arready = bus_if.ready && request_ready[2] && (response_valid == '0);
   end
 
   always_comb begin
-    bus_if.valid  =
-      ((state == IDLE) && (request_valid != '0)) ||
-      ((state == BUS_ACCESS_BUSY));
-  end
-
-  always_comb begin
-    if (state != IDLE) begin
-      bus_if.access     = access;
-      bus_if.address    = address;
-      bus_if.write_data = write_data;
-      bus_if.strobe     = strobe;
-    end
-    else if (request_valid[0]) begin
+    bus_if.valid  = (request_valid != '0) && (response_valid == '0);
+    if (request_valid[0]) begin
       bus_if.access     = RGGEN_WRITE;
       bus_if.address    = buffer_if.awaddr;
       bus_if.write_data = buffer_if.wdata;
@@ -82,28 +65,8 @@ module rggen_axi4lite_adapter
   end
 
   always_comb begin
-    request_valid =
-      get_request_valid(buffer_if.awvalid, buffer_if.wvalid, buffer_if.arvalid);
-    request_ready =
-      get_request_ready(state, buffer_if.awvalid, buffer_if.wvalid, buffer_if.arvalid);
-  end
-
-  always_ff @(posedge i_clk, negedge i_rst_n) begin
-    if (!i_rst_n) begin
-      access  <= rggen_access'(0);
-      address <= '0;
-    end
-    else if ((state == IDLE) && (request_valid != '0)) begin
-      access  <= bus_if.access;
-      address <= bus_if.address;
-    end
-  end
-
-  always_ff @(posedge i_clk) begin
-    if ((state == IDLE) && (request_valid != '0)) begin
-      write_data  <= bus_if.write_data;
-      strobe      <= bus_if.strobe;
-    end
+    request_valid = get_request_valid(buffer_if.awvalid, buffer_if.wvalid, buffer_if.arvalid);
+    request_ready = get_request_ready(buffer_if.awvalid, buffer_if.wvalid, buffer_if.arvalid);
   end
 
   function automatic logic [1:0] get_request_valid(
@@ -111,57 +74,42 @@ module rggen_axi4lite_adapter
     logic wvalid,
     logic arvalid
   );
-    logic write_valid;
-    logic read_valid;
+    logic [1:0] valid;
 
     if (WRITE_FIRST) begin
-      write_valid = awvalid && wvalid;
-      read_valid  = arvalid && (!write_valid);
+      valid[0]  = awvalid && wvalid;
+      valid[1]  = arvalid && (!valid[0]);
     end
     else begin
-      read_valid  = arvalid;
-      write_valid = awvalid && wvalid && (!read_valid);
+      valid[0]  = awvalid && wvalid && (!arvalid);
+      valid[1]  = arvalid;
     end
 
-    return {read_valid, write_valid};
+    return valid;
   endfunction
 
   function automatic logic [2:0] get_request_ready(
-    rggen_axi4lite_adapter_state  state,
-    logic                         awvalid,
-    logic                         wvalid,
-    logic                         arvalid
+    logic awvalid,
+    logic wvalid,
+    logic arvalid
   );
-    if (state == IDLE) begin
-      logic awready;
-      logic wready;
-      logic arready;
+    logic [2:0] ready;
 
-      if (WRITE_FIRST) begin
-        awready = wvalid;
-        wready  = awvalid;
-        arready = !(awvalid && wvalid);
-      end
-      else begin
-        arready = '1;
-        awready = (!arvalid) && wvalid;
-        wvalid  = (!arvalid) && awvalid;
-      end
-
-      return {arready, wready, awready};
+    if (WRITE_FIRST) begin
+      ready[0]  = wvalid;
+      ready[1]  = awvalid;
+      ready[2]  = !(awvalid && wvalid);
     end
     else begin
-      return 3'b000;
+      ready[0]  = (!arvalid) && wvalid;
+      ready[1]  = (!arvalid) && awvalid;
+      ready[2]  = '1;
     end
+
+    return ready;
   endfunction
 
   //  Response
-  logic [1:0]                             response_valid;
-  logic                                   response_ack;
-  logic [rggen_clip_width(ID_WIDTH)-1:0]  id;
-  logic [BUS_WIDTH-1:0]                   read_data;
-  logic [1:0]                             status;
-
   always_comb begin
     buffer_if.bvalid  = response_valid[0];
     buffer_if.bid     = id;
@@ -221,37 +169,6 @@ module rggen_axi4lite_adapter
     if (bus_if.valid && bus_if.ready) begin
       status    <= bus_if.status;
       read_data <= bus_if.read_data;
-    end
-  end
-
-  //  State machine
-  always_ff @(posedge i_clk, negedge i_rst_n) begin
-    if (!i_rst_n) begin
-      state <= IDLE;
-    end
-    else begin
-      case (state)
-        IDLE: begin
-          if (request_valid != '0) begin
-            if (bus_if.ready) begin
-              state <= WAIT_FOR_RESPONSE_READY;
-            end
-            else begin
-              state <= BUS_ACCESS_BUSY;
-            end
-          end
-        end
-        BUS_ACCESS_BUSY: begin
-          if (bus_if.ready) begin
-            state <= WAIT_FOR_RESPONSE_READY;
-          end
-        end
-        WAIT_FOR_RESPONSE_READY: begin
-          if (response_ack) begin
-            state <= IDLE;
-          end
-        end
-      endcase
     end
   end
 
