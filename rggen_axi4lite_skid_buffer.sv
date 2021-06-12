@@ -127,7 +127,7 @@ module rggen_axi4lite_skid_buffer
   end
 
   always_comb begin
-    if (awvalid) begin
+    if (arvalid) begin
       master_if.arid    = arid;
       master_if.araddr  = araddr;
       master_if.arprot  = arprot;
