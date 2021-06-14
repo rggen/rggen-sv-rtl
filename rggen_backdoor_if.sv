@@ -31,12 +31,11 @@ interface rggen_backdoor_if(
     output  write_data;
     input   read_data;
     input   value;
-  endclocking
 
-  event at_clock_edge;
-  always @(backdoor_cb) begin
-    ->at_clock_edge;
-  end
+    sequence at_clock_edge;
+      1;
+    endsequence
+  endclocking
 
   semaphore backdoor_access_lock;
   initial begin
@@ -64,7 +63,7 @@ interface rggen_backdoor_if(
   );
     backdoor_access_lock.get(1);
 
-    if (!at_clock_edge.triggered) begin
+    if (!backdoor_cb.at_clock_edge.triggered) begin
       @(backdoor_cb);
     end
 
