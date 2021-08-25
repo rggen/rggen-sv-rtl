@@ -22,7 +22,7 @@ module rggen_bit_field_w01trg #(
         bit_field_if.write_mask, bit_field_if.write_data
       );
     end
-    else begin
+    else if (trigger != '0) begin
       trigger <= '0;
     end
   end
