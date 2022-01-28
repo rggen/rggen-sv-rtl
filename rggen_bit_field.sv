@@ -11,7 +11,8 @@ module rggen_bit_field
   parameter rggen_polarity      HW_WRITE_ENABLE_POLARITY  = RGGEN_ACTIVE_HIGH,
   parameter int                 HW_SET_WIDTH              = WIDTH,
   parameter int                 HW_CLEAR_WIDTH            = WIDTH,
-  parameter bit                 STORAGE                   = '1
+  parameter bit                 STORAGE                   = '1,
+  parameter bit                 EXTERNAL_READ_DATA        = '0
 )(
   input   logic                       i_clk,
   input   logic                       i_rst_n,
@@ -130,15 +131,11 @@ module rggen_bit_field
       default:              value[1]  = current_value;
     endcase
 
-    if (update[0]) begin
-      return value[0];
-    end
-    else if (update[1]) begin
-      return value[1];
-    end
-    else begin
-      return current_value;
-    end
+    case (update)
+      2'b01:    return value[0];
+      2'b10:    return value[1];
+      default:  return current_value;
+    endcase
   endfunction
 
   function automatic logic [WIDTH-1:0] get_hw_next_value(
@@ -177,18 +174,14 @@ module rggen_bit_field
   localparam  bit SW_READABLE = SW_READ_ACTION != RGGEN_READ_NONE;
 
   logic [WIDTH-1:0] value;
-  logic [WIDTH-1:0] value_masked;
   logic [WIDTH-1:0] read_data;
 
-  assign  bit_field_if.read_data  = read_data;
+  assign  bit_field_if.read_data  = read_data & i_mask;
   assign  bit_field_if.value      = value;
-  assign  o_value                 = value_masked;
+  assign  o_value                 = value & i_mask;
   assign  o_value_unmasked        = value;
 
-  assign  value_masked  = value & i_mask;
-  assign  read_data     = (SW_READABLE) ? value_masked : '0;
-
-  generate if (STORAGE) begin : g
+  generate if (STORAGE) begin : g_value
     logic             sw_write_enable;
     logic [1:0]       sw_update;
     logic             sw_write_done;
@@ -235,7 +228,17 @@ module rggen_bit_field
       end
     end
   end
-  else begin : g
+  else begin : g_value
     assign  value = i_value;
+  end endgenerate
+
+  generate if (!SW_READABLE) begin : g_read_data
+    assign  read_data = '0;
+  end
+  else if (EXTERNAL_READ_DATA) begin : g_read_data
+    assign  read_data = i_value;
+  end
+  else begin : g_read_data
+    assign  read_data = value;
   end endgenerate
 endmodule
