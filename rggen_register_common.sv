@@ -7,7 +7,6 @@ module rggen_register_common
   parameter bit [ADDRESS_WIDTH-1:0] OFFSET_ADDRESS  = '0,
   parameter int                     BUS_WIDTH       = 32,
   parameter int                     DATA_WIDTH      = BUS_WIDTH,
-  parameter bit [DATA_WIDTH-1:0]    VALID_BITS      = '1,
   parameter int                     REGISTER_INDEX  = 0
 )(
   input logic                 i_clk,
@@ -106,8 +105,8 @@ module rggen_register_common
   assign  register_if.active    = active;
   assign  register_if.ready     = (!backdoor_valid) && active;
   assign  register_if.status    = RGGEN_OKAY;
-  assign  register_if.read_data = u_read_data_mux.mux(match, VALID_BITS & bit_field_if.read_data);
-  assign  register_if.value     = VALID_BITS & bit_field_if.value;
+  assign  register_if.read_data = u_read_data_mux.mux(match, bit_field_if.read_data);
+  assign  register_if.value     = bit_field_if.value;
 
 `ifdef RGGEN_ENABLE_BACKDOOR
   //  Backdoor access
