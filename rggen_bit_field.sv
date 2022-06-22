@@ -3,7 +3,7 @@ module rggen_bit_field
 #(
   parameter int                 WIDTH                     = 8,
   parameter bit [WIDTH-1:0]     INITIAL_VALUE             = '0,
-  parameter rggen_sw_hw_access  PRECEDENCE_ACCESS         = RGGEN_SW_ACCESS,
+  parameter rggen_sw_hw_access  PRECEDENCE_ACCESS         = RGGEN_HW_ACCESS,
   parameter rggen_sw_action     SW_READ_ACTION            = RGGEN_READ_DEFAULT,
   parameter rggen_sw_action     SW_WRITE_ACTION           = RGGEN_WRITE_DEFAULT,
   parameter bit                 SW_WRITE_ONCE             = '0,
