@@ -5,11 +5,12 @@ module rggen_bit_field_w01trg #(
   input   logic                 i_clk,
   input   logic                 i_rst_n,
   rggen_bit_field_if.bit_field  bit_field_if,
+  input   logic [WIDTH-1:0]     i_value,
   output  logic [WIDTH-1:0]     o_trigger
 );
   logic [WIDTH-1:0] trigger;
 
-  assign  bit_field_if.read_data  = '0;
+  assign  bit_field_if.read_data  = i_value;
   assign  bit_field_if.value      = trigger;
   assign  o_trigger               = trigger;
 
