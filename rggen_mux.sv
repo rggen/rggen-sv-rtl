@@ -2,6 +2,7 @@ interface rggen_mux #(
   parameter int WIDTH   = 2,
   parameter int ENTRIES = 2
 );
+`ifndef RGGEN_NAIVE_MUX_IMPLEMENTATION
   function automatic logic [WIDTH-1:0] __reduce_or(
     int                             n,
     int                             offset,
@@ -23,7 +24,7 @@ interface rggen_mux #(
       return result[0] | result[1];
     end
     else if (n == 4) begin
-      return data[0+offset] | data[1+offset] | data[2+offset] | data[3+offset];
+      return (data[0+offset] | data[1+offset]) | (data[2+offset] | data[3+offset]);
     end
     else if (n == 3) begin
       return data[0+offset] | data[1+offset] | data[2+offset];
@@ -53,4 +54,28 @@ interface rggen_mux #(
       return data[0];
     end
   endfunction
+`else
+  function automatic logic [WIDTH-1:0] mux(
+    logic [ENTRIES-1:0]             select,
+    logic [ENTRIES-1:0][WIDTH-1:0]  data
+  );
+    if (ENTRIES > 1) begin
+      logic [WIDTH-1:0] out;
+
+      for (int i = 0;i < ENTRIES;++i) begin
+        if (i == 0) begin
+          out = ({WIDTH{select[i]}} & data[i]);
+        end
+        else begin
+          out = ({WIDTH{select[i]}} & data[i]) | out;
+        end
+      end
+
+      return out;
+    end
+    else begin
+      return data[0];
+    end
+  endfunction
+`endif
 endinterface
