@@ -94,14 +94,18 @@ module rggen_adapter_common
   assign  bus_if.read_data  = (register_inactive) ? DEFAULT_READ_DATA : register_read_data;
 
 `ifdef RGGEN_ENABLE_SVA
-  ast_hold_request_until_ready_is_high:
+  ast_hold_request_command_until_ready_is_high:
   assert property (
     @(posedge i_clk)
     (bus_if.valid && (!bus_if.ready)) |=>
-      (
-        $stable(bus_if.valid) && $stable(bus_if.access) &&
-        $stable(bus_if.address) && $stable(bus_if.write_data)
-      )
+      ($stable(bus_if.valid) && $stable(bus_if.access) && $stable(bus_if.address))
+  );
+
+  ast_hold_request_data_until_ready_is_high:
+  assert property (
+    @(posedge i_clk)
+    (bus_if.valid && (!bus_if.ready) && (bus_if.access != RGGEN_READ)) |=>
+      ($stable(bus_if.write_data) && $stable(bus_if.strobe))
   );
 
   ast_only_one_register_is_active:

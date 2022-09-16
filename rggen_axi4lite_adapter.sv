@@ -34,7 +34,7 @@ module rggen_axi4lite_adapter
   );
 
   logic [1:0]                             request_valid;
-  logic [2:0]                             request_ready;
+  logic [1:0]                             request_valid_latched;
   logic [1:0]                             response_valid;
   logic                                   response_ack;
   logic [rggen_clip_width(ID_WIDTH)-1:0]  id;
@@ -43,9 +43,9 @@ module rggen_axi4lite_adapter
 
   //  Request
   always_comb begin
-    buffer_if.awready = bus_if.ready && request_ready[0] && (response_valid == '0);
-    buffer_if.wready  = bus_if.ready && request_ready[1] && (response_valid == '0);
-    buffer_if.arready = bus_if.ready && request_ready[2] && (response_valid == '0);
+    buffer_if.awready = bus_if.ready && request_valid[0] && (response_valid == '0);
+    buffer_if.wready  = bus_if.ready && request_valid[0] && (response_valid == '0);
+    buffer_if.arready = bus_if.ready && request_valid[1] && (response_valid == '0);
   end
 
   always_comb begin
@@ -65,8 +65,24 @@ module rggen_axi4lite_adapter
   end
 
   always_comb begin
-    request_valid = get_request_valid(buffer_if.awvalid, buffer_if.wvalid, buffer_if.arvalid);
-    request_ready = get_request_ready(buffer_if.awvalid, buffer_if.wvalid, buffer_if.arvalid);
+    if (request_valid_latched != '0) begin
+      request_valid = request_valid_latched;
+    end
+    else begin
+      request_valid = get_request_valid(buffer_if.awvalid, buffer_if.wvalid, buffer_if.arvalid);
+    end
+  end
+
+  always_ff @(posedge i_clk, negedge i_rst_n) begin
+    if (!i_rst_n) begin
+      request_valid_latched <= '0;
+    end
+    else if (bus_if.ready) begin
+      request_valid_latched <= '0;
+    end
+    else if (bus_if.valid) begin
+      request_valid_latched <= request_valid;
+    end
   end
 
   function automatic logic [1:0] get_request_valid(
@@ -86,27 +102,6 @@ module rggen_axi4lite_adapter
     end
 
     return valid;
-  endfunction
-
-  function automatic logic [2:0] get_request_ready(
-    logic awvalid,
-    logic wvalid,
-    logic arvalid
-  );
-    logic [2:0] ready;
-
-    if (WRITE_FIRST) begin
-      ready[0]  = wvalid;
-      ready[1]  = awvalid;
-      ready[2]  = !(awvalid && wvalid);
-    end
-    else begin
-      ready[0]  = (!arvalid) && wvalid;
-      ready[1]  = (!arvalid) && awvalid;
-      ready[2]  = '1;
-    end
-
-    return ready;
   endfunction
 
   //  Response
