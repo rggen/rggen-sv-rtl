@@ -100,12 +100,21 @@ module rggen_register_common
   endfunction
 
   //  Response
-  rggen_mux #(BUS_WIDTH, WORDS) u_read_data_mux();
+  logic [BUS_WIDTH-1:0] read_data;
+
+  rggen_mux #(
+    .WIDTH    (BUS_WIDTH  ),
+    .ENTRIES  (WORDS      )
+  ) u_read_data_mux (
+    .i_select (match                  ),
+    .i_data   (bit_field_if.read_data ),
+    .o_data   (read_data              )
+  );
 
   assign  register_if.active    = active;
   assign  register_if.ready     = (!backdoor_valid) && active;
   assign  register_if.status    = RGGEN_OKAY;
-  assign  register_if.read_data = u_read_data_mux.mux(match, bit_field_if.read_data);
+  assign  register_if.read_data = read_data;
   assign  register_if.value     = bit_field_if.value;
 
 `ifdef RGGEN_ENABLE_BACKDOOR

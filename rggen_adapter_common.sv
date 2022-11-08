@@ -56,38 +56,49 @@ module rggen_adapter_common
   endfunction
 
   //  Request
-  generate for (i = 0;i < REGISTERS;++i) begin : g_request
-    assign  register_if[i].valid      = bus_if.valid && inside_range && (!busy);
-    assign  register_if[i].access     = bus_if.access;
-    assign  register_if[i].address    = bus_if.address[LOCAL_ADDRESS_WIDTH-1:0];
-    assign  register_if[i].write_data = bus_if.write_data;
-    assign  register_if[i].strobe     = bus_if.strobe;
-  end endgenerate
+  generate
+    for (i = 0;i < REGISTERS;++i) begin : g_request
+      assign  register_if[i].valid      = bus_if.valid && inside_range && (!busy);
+      assign  register_if[i].access     = bus_if.access;
+      assign  register_if[i].address    = bus_if.address[LOCAL_ADDRESS_WIDTH-1:0];
+      assign  register_if[i].write_data = bus_if.write_data;
+      assign  register_if[i].strobe     = bus_if.strobe;
+    end
+  endgenerate
 
   //  Response
   localparam  rggen_status  DEFAULT_STATUS  = (ERROR_STATUS) ? RGGEN_SLAVE_ERROR : RGGEN_OKAY;
+  localparam  int           STATUS_WIDTH    = $bits(rggen_status);
+  localparam  int           RESPONSE_WIDTH  = BUS_WIDTH + STATUS_WIDTH;
 
-  rggen_mux #($bits(rggen_status), REGISTERS) u_status_mux();
-  rggen_mux #(BUS_WIDTH          , REGISTERS) u_read_data_mux();
+  logic [REGISTERS-1:0]                     ready;
+  logic [REGISTERS-1:0]                     active;
+  logic [REGISTERS-1:0][RESPONSE_WIDTH-1:0] response;
+  logic [RESPONSE_WIDTH-1:0]                selected_response;
+  logic                                     register_inactive;
+  rggen_status                              register_status;
+  logic [BUS_WIDTH-1:0]                     register_read_data;
 
-  logic [REGISTERS-1:0]                           ready;
-  logic [REGISTERS-1:0]                           active;
-  logic [REGISTERS-1:0][$bits(rggen_status)-1:0]  status;
-  logic [REGISTERS-1:0][BUS_WIDTH-1:0]            read_data;
-  logic                                           register_inactive;
-  rggen_status                                    register_status;
-  logic [BUS_WIDTH-1:0]                           register_read_data;
+  generate
+    for (i = 0;i < REGISTERS;++i) begin : g_response
+      assign  active[i]   = register_if[i].active;
+      assign  ready[i]    = register_if[i].ready;
+      assign  response[i] = {register_if[i].status, register_if[i].read_data};
+    end
+  endgenerate
 
-  generate for (i = 0;i < REGISTERS;++i) begin : g_response
-    assign  active[i]     = register_if[i].active;
-    assign  ready[i]      = register_if[i].ready;
-    assign  status[i]     = register_if[i].status;
-    assign  read_data[i]  = register_if[i].read_data;
-  end endgenerate
+  rggen_mux #(
+    .WIDTH    (RESPONSE_WIDTH ),
+    .ENTRIES  (REGISTERS      )
+  ) u_mux (
+    .i_select (active             ),
+    .i_data   (response           ),
+    .o_data   (selected_response  )
+  );
 
   assign  register_inactive   = (!inside_range) || (active == '0);
-  assign  register_status     = rggen_status'(u_status_mux.mux(active, status));
-  assign  register_read_data  = u_read_data_mux.mux(active, read_data);
+  assign  register_status     = rggen_status'(selected_response[BUS_WIDTH+:STATUS_WIDTH]);
+  assign  register_read_data  = selected_response[0+:BUS_WIDTH];
 
   assign  bus_if.ready      = (ready != '0) || register_inactive;
   assign  bus_if.status     = (register_inactive) ? DEFAULT_STATUS    : register_status;
