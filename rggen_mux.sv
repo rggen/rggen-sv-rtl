@@ -1,81 +1,33 @@
-interface rggen_mux #(
+module rggen_mux #(
   parameter int WIDTH   = 2,
   parameter int ENTRIES = 2
+)(
+  input   logic [ENTRIES-1:0]             i_select,
+  input   logic [ENTRIES-1:0][WIDTH-1:0]  i_data,
+  output  logic [WIDTH-1:0]               o_data
 );
-`ifndef RGGEN_NAIVE_MUX_IMPLEMENTATION
-  function automatic logic [WIDTH-1:0] __reduce_or(
-    int                             n,
-    int                             offset,
-    logic [ENTRIES-1:0][WIDTH-1:0]  data
-  );
-    if (n > 4) begin
-      int               next_n;
-      int               next_offset;
-      logic [WIDTH-1:0] result[2];
-
-      next_n      = n / 2;
-      next_offset = offset;
-      result[0]   = __reduce_or(next_n, next_offset, data);
-
-      next_n      = (n / 2) + (n % 2);
-      next_offset = (n / 2) + offset;
-      result[1]   = __reduce_or(next_n, next_offset, data);
-
-      return result[0] | result[1];
-    end
-    else if (n == 4) begin
-      return (data[0+offset] | data[1+offset]) | (data[2+offset] | data[3+offset]);
-    end
-    else if (n == 3) begin
-      return data[0+offset] | data[1+offset] | data[2+offset];
-    end
-    else if (n == 2) begin
-      return data[0+offset] | data[1+offset];
-    end
-    else begin
-      return data[0+offset];
-    end
-  endfunction
-
-  function automatic logic [WIDTH-1:0] mux(
-    logic [ENTRIES-1:0]             select,
-    logic [ENTRIES-1:0][WIDTH-1:0]  data
-  );
-    if (ENTRIES > 1) begin
+  generate
+    if (ENTRIES >= 2) begin : g
       logic [ENTRIES-1:0][WIDTH-1:0]  masked_data;
 
-      for (int i = 0;i < ENTRIES;++i) begin
-        masked_data[i]  = {WIDTH{select[i]}} & data[i];
-      end
-
-      return __reduce_or(ENTRIES, 0, masked_data);
-    end
-    else begin
-      return data[0];
-    end
-  endfunction
-`else
-  function automatic logic [WIDTH-1:0] mux(
-    logic [ENTRIES-1:0]             select,
-    logic [ENTRIES-1:0][WIDTH-1:0]  data
-  );
-    if (ENTRIES > 1) begin
-      logic [WIDTH-1:0] out;
-
-      for (int i = 0;i < ENTRIES;++i) begin
-        if (i == 0) begin
-          out = ({WIDTH{select[i]}} & data[i]);
-        end
-        else begin
-          out = ({WIDTH{select[i]}} & data[i]) | out;
+      always_comb begin
+        for (int i = 0;i < ENTRIES;++i) begin
+          masked_data[i]  = i_data[i] & {WIDTH{i_select[i]}};
         end
       end
 
-      return out;
+      rggen_or_reducer #(
+        .WIDTH  (WIDTH    ),
+        .N      (ENTRIES  )
+      ) u_reducer (
+        .i_data   (masked_data  ),
+        .o_result (o_data       )
+      );
     end
-    else begin
-      return data[0];
+    else begin : g
+      always_comb begin
+        o_data  = i_data[0];
+      end
     end
-  endfunction
-`endif
-endinterface
+  endgenerate
+endmodule
