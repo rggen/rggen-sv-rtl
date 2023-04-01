@@ -60,11 +60,26 @@ module rggen_adapter_common
     for (i = 0;i < REGISTERS;++i) begin : g_request
       assign  register_if[i].valid      = bus_if.valid && inside_range && (!busy);
       assign  register_if[i].access     = bus_if.access;
-      assign  register_if[i].address    = bus_if.address[LOCAL_ADDRESS_WIDTH-1:0];
+      assign  register_if[i].address    = get_local_address(bus_if.address);
       assign  register_if[i].write_data = bus_if.write_data;
       assign  register_if[i].strobe     = bus_if.strobe;
     end
   endgenerate
+
+  function automatic logic [LOCAL_ADDRESS_WIDTH-1:0] get_local_address(
+    logic [ADDRESS_WIDTH-1:0] address
+  );
+    logic [ADDRESS_WIDTH-1:0] local_address;
+
+    if (BASE_ADDRESS[0+:LOCAL_ADDRESS_WIDTH] == '0) begin
+      local_address = address;
+    end
+    else begin
+      local_address = address - BASE_ADDRESS;
+    end
+
+    return local_address[0+:LOCAL_ADDRESS_WIDTH];
+  endfunction
 
   //  Response
   localparam  rggen_status  DEFAULT_STATUS  = (ERROR_STATUS) ? RGGEN_SLAVE_ERROR : RGGEN_OKAY;
