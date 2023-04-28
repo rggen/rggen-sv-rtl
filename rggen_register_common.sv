@@ -6,8 +6,7 @@ module rggen_register_common
   parameter int                     ADDRESS_WIDTH   = 8,
   parameter bit [ADDRESS_WIDTH-1:0] OFFSET_ADDRESS  = '0,
   parameter int                     BUS_WIDTH       = 32,
-  parameter int                     DATA_WIDTH      = BUS_WIDTH,
-  parameter int                     REGISTER_INDEX  = 0
+  parameter int                     DATA_WIDTH      = BUS_WIDTH
 )(
   input logic                 i_clk,
   input logic                 i_rst_n,
@@ -29,32 +28,29 @@ module rggen_register_common
 
   assign  active  = |{1'b0, match};
 
-  generate for (g = 0;g < WORDS;++g) begin : g_decoder
-    localparam  bit [ADDRESS_WIDTH-1:0] START_ADDRESS = calc_start_address(g);
-    localparam  bit [ADDRESS_WIDTH-1:0] END_ADDRESS   = clac_end_address(g);
+  generate
+    for (g = 0;g < WORDS;++g) begin : g_decoder
+      localparam  bit [ADDRESS_WIDTH-1:0] START_ADDRESS = calc_start_address(g);
+      localparam  bit [ADDRESS_WIDTH-1:0] END_ADDRESS   = clac_end_address(g);
 
-    rggen_address_decoder #(
-      .READABLE       (READABLE       ),
-      .WRITABLE       (WRITABLE       ),
-      .WIDTH          (ADDRESS_WIDTH  ),
-      .LSB            (ADDRESS_LSB    ),
-      .START_ADDRESS  (START_ADDRESS  ),
-      .END_ADDRESS    (END_ADDRESS    )
-    ) u_decoder (
-      .i_address          (register_if.address  ),
-      .i_access           (register_if.access   ),
-      .i_additional_match (i_additional_match   ),
-      .o_match            (match[g]             )
-    );
-  end endgenerate
+      rggen_address_decoder #(
+        .READABLE       (READABLE       ),
+        .WRITABLE       (WRITABLE       ),
+        .WIDTH          (ADDRESS_WIDTH  ),
+        .LSB            (ADDRESS_LSB    ),
+        .START_ADDRESS  (START_ADDRESS  ),
+        .END_ADDRESS    (END_ADDRESS    )
+      ) u_decoder (
+        .i_address          (register_if.address  ),
+        .i_access           (register_if.access   ),
+        .i_additional_match (i_additional_match   ),
+        .o_match            (match[g]             )
+      );
+    end
+  endgenerate
 
   function automatic bit [ADDRESS_WIDTH-1:0] calc_start_address(int index);
-    return
-      ADDRESS_WIDTH'(
-        OFFSET_ADDRESS  * 1              +
-        DATA_BYTE_WIDTH * REGISTER_INDEX +
-        BUS_BYTE_WIDTH  * index
-      );
+    return OFFSET_ADDRESS + ADDRESS_WIDTH'(BUS_BYTE_WIDTH * index);
   endfunction
 
   function automatic bit [ADDRESS_WIDTH-1:0] clac_end_address(int index);

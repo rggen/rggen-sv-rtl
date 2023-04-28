@@ -23,8 +23,7 @@ module rggen_indirect_register #(
     .ADDRESS_WIDTH  (ADDRESS_WIDTH  ),
     .OFFSET_ADDRESS (OFFSET_ADDRESS ),
     .BUS_WIDTH      (BUS_WIDTH      ),
-    .DATA_WIDTH     (DATA_WIDTH     ),
-    .REGISTER_INDEX (0              )
+    .DATA_WIDTH     (DATA_WIDTH     )
   ) u_register_common (
     .i_clk              (i_clk          ),
     .i_rst_n            (i_rst_n        ),
