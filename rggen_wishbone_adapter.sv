@@ -10,6 +10,7 @@ module rggen_wishbone_adapter
   parameter int                     BYTE_SIZE           = 256,
   parameter bit                     ERROR_STATUS        = 0,
   parameter bit [BUS_WIDTH-1:0]     DEFAULT_READ_DATA   = '0,
+  parameter bit                     INSERT_SLICER       = 0,
   parameter bit                     USE_STALL           = '1
 )(
   input logic             i_clk,
@@ -126,7 +127,8 @@ module rggen_wishbone_adapter
     .BASE_ADDRESS         (BASE_ADDRESS         ),
     .BYTE_SIZE            (BYTE_SIZE            ),
     .ERROR_STATUS         (ERROR_STATUS         ),
-    .DEFAULT_READ_DATA    (DEFAULT_READ_DATA    )
+    .DEFAULT_READ_DATA    (DEFAULT_READ_DATA    ),
+    .INSERT_SLICER        (INSERT_SLICER        )
   ) u_adapter_common (
     .i_clk        (i_clk        ),
     .i_rst_n      (i_rst_n      ),

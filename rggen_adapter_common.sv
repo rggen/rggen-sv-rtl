@@ -9,7 +9,8 @@ module rggen_adapter_common
   parameter bit [ADDRESS_WIDTH-1:0] BASE_ADDRESS        = '0,
   parameter int                     BYTE_SIZE           = 256,
   parameter bit                     ERROR_STATUS        = 0,
-  parameter bit [BUS_WIDTH-1:0]     DEFAULT_READ_DATA   = '0
+  parameter bit [BUS_WIDTH-1:0]     DEFAULT_READ_DATA   = '0,
+  parameter bit                     INSERT_SLICER       = 0
 )(
   input logic             i_clk,
   input logic             i_rst_n,
@@ -56,13 +57,55 @@ module rggen_adapter_common
   endfunction
 
   //  Request
+  logic                           bus_valid;
+  rggen_access                    bus_access;
+  logic [LOCAL_ADDRESS_WIDTH-1:0] bus_address;
+  logic [BUS_WIDTH-1:0]           bus_write_data;
+  logic [BUS_WIDTH/8-1:0]         bus_strobe;
+
   generate
+    if (INSERT_SLICER) begin : g_request_slicer
+      always_ff @(posedge i_clk, negedge i_rst_n) begin
+        if (!i_rst_n) begin
+          bus_valid <= '0;
+        end
+        else if (!busy) begin
+          bus_valid <= bus_if.valid && inside_range;
+        end
+        else begin
+          bus_valid <= '0;
+        end
+      end
+
+      always_ff @(posedge i_clk, negedge i_rst_n) begin
+        if (!i_rst_n) begin
+          bus_access      <= rggen_access'(0);
+          bus_address     <= '0;
+          bus_write_data  <= '0;
+          bus_strobe      <= '0;
+        end
+        else if (bus_if.valid && (!busy)) begin
+          bus_access      <= bus_if.access;
+          bus_address     <= get_local_address(bus_if.address);
+          bus_write_data  <= bus_if.write_data;
+          bus_strobe      <= bus_if.strobe;
+        end
+      end
+    end
+    else begin : g_no_request_slicer
+      assign  bus_valid       = bus_if.valid && inside_range && (!busy);
+      assign  bus_access      = bus_if.access;
+      assign  bus_address     = get_local_address(bus_if.address);
+      assign  bus_write_data  = bus_if.write_data;
+      assign  bus_strobe      = bus_if.strobe;
+    end
+
     for (i = 0;i < REGISTERS;++i) begin : g_request
-      assign  register_if[i].valid      = bus_if.valid && inside_range && (!busy);
-      assign  register_if[i].access     = bus_if.access;
-      assign  register_if[i].address    = get_local_address(bus_if.address);
-      assign  register_if[i].write_data = bus_if.write_data;
-      assign  register_if[i].strobe     = bus_if.strobe;
+      assign  register_if[i].valid      = bus_valid;
+      assign  register_if[i].access     = bus_access;
+      assign  register_if[i].address    = bus_address;
+      assign  register_if[i].write_data = bus_write_data;
+      assign  register_if[i].strobe     = bus_strobe;
     end
   endgenerate
 
@@ -115,7 +158,7 @@ module rggen_adapter_common
   assign  register_status     = rggen_status'(selected_response[BUS_WIDTH+:STATUS_WIDTH]);
   assign  register_read_data  = selected_response[0+:BUS_WIDTH];
 
-  assign  bus_if.ready      = (ready != '0) || register_inactive;
+  assign  bus_if.ready      = ((!INSERT_SLICER) || busy) && ((ready != '0) || register_inactive);
   assign  bus_if.status     = (register_inactive) ? DEFAULT_STATUS    : register_status;
   assign  bus_if.read_data  = (register_inactive) ? DEFAULT_READ_DATA : register_read_data;
 
