@@ -3,8 +3,9 @@ module rggen_external_register
 #(
   parameter int                     ADDRESS_WIDTH = 8,
   parameter int                     BUS_WIDTH     = 32,
+  parameter int                     VALUE_WIDTH   = BUS_WIDTH,
   parameter bit [ADDRESS_WIDTH-1:0] START_ADDRESS = '0,
-  parameter bit [ADDRESS_WIDTH-1:0] END_ADDRESS   = '0
+  parameter int                     BYTE_SIZE     = 0
 )(
   input logic                 i_clk,
   input logic                 i_rst_n,
@@ -12,16 +13,14 @@ module rggen_external_register
   rggen_bus_if.master         bus_if
 );
   //  Decode address
-  localparam  int ADDRESS_LSB = $clog2(BUS_WIDTH) - 3;
-
   logic match;
   rggen_address_decoder #(
     .READABLE       (1'b1           ),
     .WRITABLE       (1'b1           ),
     .WIDTH          (ADDRESS_WIDTH  ),
-    .LSB            (ADDRESS_LSB    ),
+    .BUS_WIDTH      (BUS_WIDTH      ),
     .START_ADDRESS  (START_ADDRESS  ),
-    .END_ADDRESS    (END_ADDRESS    )
+    .BYTE_SIZE      (BYTE_SIZE      )
   ) u_decoder (
     .i_address          (register_if.address  ),
     .i_access           (register_if.access   ),
@@ -71,5 +70,5 @@ module rggen_external_register
   assign  register_if.ready     = (bus_if.valid) ? bus_if.ready : '0;
   assign  register_if.status    = bus_if.status;
   assign  register_if.read_data = bus_if.read_data;
-  assign  register_if.value     = bus_if.read_data;
+  assign  register_if.value     = VALUE_WIDTH'(bus_if.read_data);
 endmodule

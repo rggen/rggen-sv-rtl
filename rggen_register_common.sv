@@ -6,7 +6,8 @@ module rggen_register_common
   parameter int                     ADDRESS_WIDTH   = 8,
   parameter bit [ADDRESS_WIDTH-1:0] OFFSET_ADDRESS  = '0,
   parameter int                     BUS_WIDTH       = 32,
-  parameter int                     DATA_WIDTH      = BUS_WIDTH
+  parameter int                     DATA_WIDTH      = BUS_WIDTH,
+  parameter int                     VALUE_WIDTH     = BUS_WIDTH
 )(
   input logic                 i_clk,
   input logic                 i_rst_n,
@@ -17,7 +18,6 @@ module rggen_register_common
   localparam  int WORDS             = DATA_WIDTH / BUS_WIDTH;
   localparam  int BUS_BYTE_WIDTH    = BUS_WIDTH / 8;
   localparam  int DATA_BYTE_WIDTH   = DATA_WIDTH / 8;
-  localparam  int ADDRESS_LSB       = $clog2(BUS_BYTE_WIDTH);
   localparam  int WORD_INDEX_WIDTH  = (WORDS >= 2) ? $clog2(WORDS) : 1;
 
   genvar  g;
@@ -26,20 +26,20 @@ module rggen_register_common
   logic [WORDS-1:0] match;
   logic             active;
 
-  assign  active  = |{1'b0, match};
+  assign  active  = match != '0;
 
   generate
     for (g = 0;g < WORDS;++g) begin : g_decoder
-      localparam  bit [ADDRESS_WIDTH-1:0] START_ADDRESS = calc_start_address(g);
-      localparam  bit [ADDRESS_WIDTH-1:0] END_ADDRESS   = clac_end_address(g);
+      localparam  bit [ADDRESS_WIDTH-1:0] START_ADDRESS = OFFSET_ADDRESS
+                                                        + ADDRESS_WIDTH'(BUS_BYTE_WIDTH * g);
 
       rggen_address_decoder #(
         .READABLE       (READABLE       ),
         .WRITABLE       (WRITABLE       ),
         .WIDTH          (ADDRESS_WIDTH  ),
-        .LSB            (ADDRESS_LSB    ),
+        .BUS_WIDTH      (BUS_WIDTH      ),
         .START_ADDRESS  (START_ADDRESS  ),
-        .END_ADDRESS    (END_ADDRESS    )
+        .BYTE_SIZE      (BUS_BYTE_WIDTH )
       ) u_decoder (
         .i_address          (register_if.address  ),
         .i_access           (register_if.access   ),
@@ -48,14 +48,6 @@ module rggen_register_common
       );
     end
   endgenerate
-
-  function automatic bit [ADDRESS_WIDTH-1:0] calc_start_address(int index);
-    return OFFSET_ADDRESS + ADDRESS_WIDTH'(BUS_BYTE_WIDTH * index);
-  endfunction
-
-  function automatic bit [ADDRESS_WIDTH-1:0] clac_end_address(int index);
-    return ADDRESS_WIDTH'(calc_start_address(index + 1) - 1);
-  endfunction
 
   //  Request
   logic                   frontdoor_valid;
@@ -111,7 +103,7 @@ module rggen_register_common
   assign  register_if.ready     = (!backdoor_valid) && active;
   assign  register_if.status    = RGGEN_OKAY;
   assign  register_if.read_data = read_data;
-  assign  register_if.value     = bit_field_if.value;
+  assign  register_if.value     = VALUE_WIDTH'(bit_field_if.value);
 
 `ifdef RGGEN_ENABLE_BACKDOOR
   //  Backdoor access

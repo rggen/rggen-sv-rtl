@@ -46,8 +46,8 @@ module rggen_adapter_common
       logic [ADDRESS_WIDTH-1:0] begin_addrss;
       logic [ADDRESS_WIDTH-1:0] end_address;
 
-      begin_addrss  = ADDRESS_WIDTH'(BASE_ADDRESS);
-      end_address   = ADDRESS_WIDTH'(BASE_ADDRESS + BYTE_SIZE - 1);
+      begin_addrss  = BASE_ADDRESS;
+      end_address   = BASE_ADDRESS + ADDRESS_WIDTH'(BYTE_SIZE - 1);
 
       return (address >= begin_addrss) && (address <= end_address);
     end

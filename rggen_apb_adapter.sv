@@ -21,7 +21,7 @@ module rggen_apb_adapter
 
   assign  bus_if.valid      = (apb_if.psel && (!apb_if.pready)) ? '1 : '0;
   assign  bus_if.access     = (apb_if.pwrite) ? RGGEN_WRITE : RGGEN_READ;
-  assign  bus_if.address    = apb_if.paddr;
+  assign  bus_if.address    = apb_if.paddr[ADDRESS_WIDTH-1:0];
   assign  bus_if.write_data = apb_if.pwdata;
   assign  bus_if.strobe     = apb_if.pstrb;
 

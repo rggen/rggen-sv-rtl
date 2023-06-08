@@ -45,7 +45,7 @@ module rggen_wishbone_adapter
     end
     else begin
       bus_if.access     = (wishbone_if.we) ? RGGEN_WRITE : RGGEN_READ;
-      bus_if.address    = wishbone_if.adr;
+      bus_if.address    = ADDRESS_WIDTH'(wishbone_if.adr);
       bus_if.write_data = wishbone_if.dat_w;
       bus_if.strobe     = wishbone_if.sel;
     end
@@ -76,7 +76,7 @@ module rggen_wishbone_adapter
           wb_dat_w  <= '0;
         end
         else if (request_valid == 2'b01) begin
-          wb_adr    <= wishbone_if.adr;
+          wb_adr    <= ADDRESS_WIDTH'(wishbone_if.adr);
           wb_we     <= wishbone_if.we;
           wb_dat_w  <= wishbone_if.dat_w;
         end

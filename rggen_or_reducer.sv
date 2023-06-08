@@ -8,12 +8,12 @@ module rggen_or_reducer #(
   function automatic bit [N-1:0][15:0] get_sub_n_list(int n);
     bit [N-1:0][15:0] list;
     int               list_index;
-    int               current_n;
-    int               half_n;
+    bit [15:0]        current_n;
+    bit [15:0]        half_n;
 
     list        = '0;
     list_index  = 0;
-    current_n   = n;
+    current_n   = 16'(n);
     while (current_n > 0) begin
       half_n  = current_n / 2;
       if ((current_n > 4) && (half_n <= 4)) begin

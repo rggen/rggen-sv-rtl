@@ -40,7 +40,7 @@ module rggen_axi4lite_skid_buffer
     end
     else begin
       master_if.awid    = slave_if.awid;
-      master_if.awaddr  = slave_if.awaddr;
+      master_if.awaddr  = ADDRESS_WIDTH'(slave_if.awaddr);
       master_if.awprot  = slave_if.awprot;
     end
   end
@@ -129,7 +129,7 @@ module rggen_axi4lite_skid_buffer
   always_comb begin
     if (arvalid) begin
       master_if.arid    = arid;
-      master_if.araddr  = araddr;
+      master_if.araddr  = ADDRESS_WIDTH'(araddr);
       master_if.arprot  = arprot;
     end
     else begin
