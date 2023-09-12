@@ -9,7 +9,7 @@ interface rggen_register_if #(
   rggen_access              access;
   logic [ADDRESS_WIDTH-1:0] address;
   logic [BUS_WIDTH-1:0]     write_data;
-  logic [BUS_WIDTH/8-1:0]   strobe;
+  logic [BUS_WIDTH-1:0]     strobe;
   logic                     ready;
   rggen_status              status;
   logic [BUS_WIDTH-1:0]     read_data;

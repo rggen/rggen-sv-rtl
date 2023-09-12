@@ -4,6 +4,7 @@ module rggen_external_register
   parameter int                     ADDRESS_WIDTH = 8,
   parameter int                     BUS_WIDTH     = 32,
   parameter int                     VALUE_WIDTH   = BUS_WIDTH,
+  parameter int                     STROBE_WIDTH  = BUS_WIDTH / 8,
   parameter bit [ADDRESS_WIDTH-1:0] START_ADDRESS = '0,
   parameter int                     BYTE_SIZE     = 0
 )(
@@ -61,9 +62,26 @@ module rggen_external_register
   always_ff @(posedge i_clk) begin
     if (register_if.valid && match) begin
       bus_if.write_data <= register_if.write_data;
-      bus_if.strobe     <= register_if.strobe;
+      bus_if.strobe     <= get_bus_strobe(register_if.strobe);
     end
   end
+
+  function automatic logic [STROBE_WIDTH-1:0] get_bus_strobe(
+    logic [BUS_WIDTH-1:0] register_strobe
+  );
+    logic [STROBE_WIDTH-1:0]  strobe;
+
+    if (STROBE_WIDTH == BUS_WIDTH) begin
+      strobe  = STROBE_WIDTH'(register_strobe);
+    end
+    else begin
+      for (int i = 0;i < STROBE_WIDTH;++i) begin
+        strobe[i] = register_strobe[8*i+:8] != '0;
+      end
+    end
+
+    return strobe;
+  endfunction
 
   //  Response
   assign  register_if.active    = match;

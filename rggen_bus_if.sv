@@ -1,6 +1,7 @@
 interface rggen_bus_if #(
   parameter int ADDRESS_WIDTH = 16,
-  parameter int BUS_WIDTH     = 32
+  parameter int BUS_WIDTH     = 32,
+  parameter int STROBE_WIDTH  = BUS_WIDTH / 8
 );
   import  rggen_rtl_pkg::*;
 
@@ -8,7 +9,7 @@ interface rggen_bus_if #(
   rggen_access              access;
   logic [ADDRESS_WIDTH-1:0] address;
   logic [BUS_WIDTH-1:0]     write_data;
-  logic [BUS_WIDTH/8-1:0]   strobe;
+  logic [STROBE_WIDTH-1:0]  strobe;
   logic                     ready;
   rggen_status              status;
   logic [BUS_WIDTH-1:0]     read_data;
