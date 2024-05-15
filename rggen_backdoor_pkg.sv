@@ -41,7 +41,13 @@ package rggen_backdoor_pkg;
     protected function string normalize_hdl_path(string path);
       string  normalized_path;
       for (int i = 0;i < path.len();++i) begin
-        if ((path[i] != "\\") && (path[i] != " ")) begin
+        if (path[i] == "(") begin
+          normalized_path = {normalized_path, "["};
+        end
+        else if (path[i] == ")") begin
+          normalized_path = {normalized_path, "]"};
+        end
+        else if ((path[i] != "\\") && (path[i] != " ")) begin
           normalized_path = {normalized_path, path[i]};
         end
       end
