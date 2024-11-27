@@ -74,11 +74,13 @@ module rggen_wishbone_adapter
           wb_adr    <= '0;
           wb_we     <= '0;
           wb_dat_w  <= '0;
+          wb_sel    <= '0;
         end
         else if (request_valid == 2'b01) begin
           wb_adr    <= ADDRESS_WIDTH'(wishbone_if.adr);
           wb_we     <= wishbone_if.we;
           wb_dat_w  <= wishbone_if.dat_w;
+          wb_sel    <= wishbone_if.sel;
         end
       end
     end
@@ -88,6 +90,7 @@ module rggen_wishbone_adapter
         wb_adr            = '0;
         wb_we             = '0;
         wb_dat_w          = '0;
+        wb_sel            = '0;
       end
     end
   endgenerate
