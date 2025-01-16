@@ -23,3 +23,4 @@ ${RGGEN_SV_RTL_ROOT}/rggen_axi4lite_bridge.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_wishbone_if.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_wishbone_adapter.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_wishbone_bridge.sv
+${RGGEN_SV_RTL_ROOT}/rggen_native_adapter.sv
