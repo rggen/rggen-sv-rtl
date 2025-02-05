@@ -63,7 +63,7 @@ module rggen_register_common
   assign  bit_field_if.write_data = (backdoor_valid) ? write_data[1] : write_data[0];
 
   assign  frontdoor_valid = (active) ? register_if.valid : '0;
-  assign  read_mask[0]    = get_mask(1'b0, READABLE, match, register_if.access, {BUS_WIDTH{1'b1}} );
+  assign  read_mask[0]    = get_mask(1'b0, READABLE, match, register_if.access, register_if.strobe);
   assign  write_mask[0]   = get_mask(1'b1, WRITABLE, match, register_if.access, register_if.strobe);
   assign  write_data[0]   = (WRITABLE) ? {WORDS{register_if.write_data}} : '0;
 

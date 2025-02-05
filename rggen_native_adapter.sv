@@ -9,6 +9,7 @@ module rggen_native_adapter
   parameter bit                     PRE_DECODE          = 0,
   parameter bit [ADDRESS_WIDTH-1:0] BASE_ADDRESS        = '0,
   parameter int                     BYTE_SIZE           = 256,
+  parameter bit                     USE_READ_STROBE     = 0,
   parameter bit                     ERROR_STATUS        = 0,
   parameter bit [BUS_WIDTH-1:0]     DEFAULT_READ_DATA   = '0,
   parameter bit                     INSERT_SLICER       = 0
@@ -53,6 +54,7 @@ module rggen_native_adapter
     .PRE_DECODE           (PRE_DECODE           ),
     .BASE_ADDRESS         (BASE_ADDRESS         ),
     .BYTE_SIZE            (BYTE_SIZE            ),
+    .USE_READ_STROBE      (USE_READ_STROBE      ),
     .ERROR_STATUS         (ERROR_STATUS         ),
     .DEFAULT_READ_DATA    (DEFAULT_READ_DATA    ),
     .INSERT_SLICER        (INSERT_SLICER        )

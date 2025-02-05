@@ -9,6 +9,7 @@ module rggen_adapter_common
   parameter bit                     PRE_DECODE          = 0,
   parameter bit [ADDRESS_WIDTH-1:0] BASE_ADDRESS        = '0,
   parameter int                     BYTE_SIZE           = 256,
+  parameter bit                     USE_READ_STROBE     = 0,
   parameter bit                     ERROR_STATUS        = 0,
   parameter bit [BUS_WIDTH-1:0]     DEFAULT_READ_DATA   = '0,
   parameter bit                     INSERT_SLICER       = 0
@@ -106,7 +107,7 @@ module rggen_adapter_common
       assign  register_if[i].access     = bus_access;
       assign  register_if[i].address    = bus_address;
       assign  register_if[i].write_data = bus_write_data;
-      assign  register_if[i].strobe     = get_regiser_strobe(bus_strobe);
+      assign  register_if[i].strobe     = get_regiser_strobe(bus_access, bus_strobe);
     end
   endgenerate
 
@@ -126,11 +127,15 @@ module rggen_adapter_common
   endfunction
 
   function automatic logic [BUS_WIDTH-1:0] get_regiser_strobe(
+    rggen_access              bus_access,
     logic [STROBE_WIDTH-1:0]  bus_strobe
   );
     logic [BUS_WIDTH-1:0] strobe;
 
-    if (STROBE_WIDTH == BUS_WIDTH) begin
+    if ((!USE_READ_STROBE) && (bus_access == RGGEN_READ)) begin
+      strobe  = '1;
+    end
+    else if (STROBE_WIDTH == BUS_WIDTH) begin
       strobe  = BUS_WIDTH'(bus_strobe);
     end
     else begin
