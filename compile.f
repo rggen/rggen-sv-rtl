@@ -20,7 +20,7 @@ ${RGGEN_SV_RTL_ROOT}/rggen_axi4lite_if.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_axi4lite_skid_buffer.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_axi4lite_adapter.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_axi4lite_bridge.sv
-${RGGEN_SV_RTL_ROOT}/rggen_avalon_skid_buffer.sv
+${RGGEN_SV_RTL_ROOT}/rggen_avalon_if.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_avalon_adapter.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_avalon_bridge.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_wishbone_if.sv
