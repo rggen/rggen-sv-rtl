@@ -8,8 +8,6 @@ interface rggen_avalon_if #(
   logic [BUS_WIDTH/8-1:0]   byteenable;
   logic [BUS_WIDTH-1:0]     writedata;
   logic                     waitrequest;
-  logic                     readdatavalid;
-  logic                     writeresponsevalid;
   logic [1:0]               response;
   logic [BUS_WIDTH-1:0]     readdata;
 
@@ -20,8 +18,6 @@ interface rggen_avalon_if #(
     output  byteenable,
     output  writedata,
     input   waitrequest,
-    input   readdatavalid,
-    input   writeresponsevalid,
     input   response,
     input   readdata
   );
@@ -33,8 +29,6 @@ interface rggen_avalon_if #(
     input   byteenable,
     input   writedata,
     output  waitrequest,
-    output  readdatavalid,
-    output  writeresponsevalid,
     output  response,
     output  readdata
   );
@@ -46,8 +40,6 @@ interface rggen_avalon_if #(
     input byteenable,
     input writedata,
     input waitrequest,
-    input readdatavalid,
-    input writeresponsevalid,
     input response,
     input readdata
   );

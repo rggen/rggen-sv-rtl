@@ -19,84 +19,33 @@ module rggen_avalon_adapter
 );
   rggen_bus_if #(ADDRESS_WIDTH, BUS_WIDTH)  bus_if();
 
-  logic [1:0]               request_valid;
-  logic                     read;
-  logic [ADDRESS_WIDTH-1:0] address;
-  logic [BUS_WIDTH/8-1:0]   byteenable;
-  logic [BUS_WIDTH-1:0]     writedata;
-  logic [1:0]               response_valid;
-  logic [1:0]               response;
-  logic [BUS_WIDTH-1:0]     readdata;
+  logic                 waitrequest;
+  logic [1:0]           response;
+  logic [BUS_WIDTH-1:0] readdata;
 
   always_comb begin
-    avalon_if.waitrequest         = request_valid[1];
-    avalon_if.readdatavalid       = response_valid[0];
-    avalon_if.writeresponsevalid  = response_valid[1];
-    avalon_if.response            = response;
-    avalon_if.readdata            = readdata;
+    bus_if.valid      = (avalon_if.read || avalon_if.write) && waitrequest;
+    bus_if.access     = (avalon_if.read) ? RGGEN_READ : RGGEN_WRITE;
+    bus_if.address    = avalon_if.address;
+    bus_if.write_data = avalon_if.writedata;
+    bus_if.strobe     = avalon_if.byteenable;
   end
 
   always_comb begin
-    bus_if.valid  = request_valid != '0;
-    if (request_valid[1]) begin
-      bus_if.access     = (read) ? RGGEN_READ : RGGEN_WRITE;
-      bus_if.address    = address;
-      bus_if.write_data = writedata;
-      bus_if.strobe     = byteenable;
-    end
-    else begin
-      bus_if.access     = (avalon_if.read) ? RGGEN_READ : RGGEN_WRITE;
-      bus_if.address    = avalon_if.address;
-      bus_if.write_data = avalon_if.writedata;
-      bus_if.strobe     = avalon_if.byteenable;
-    end
-  end
-
-  always_comb begin
-    request_valid[0]  = avalon_if.read || avalon_if.write;
+    avalon_if.waitrequest = waitrequest;
+    avalon_if.response    = response;
+    avalon_if.readdata    = readdata;
   end
 
   always_ff @(posedge i_clk, negedge i_rst_n) begin
     if (!i_rst_n) begin
-      request_valid[1]  <= '0;
+      waitrequest <= '1;
     end
     else if (bus_if.valid && bus_if.ready) begin
-      request_valid[1]  <= '0;
-    end
-    else if (request_valid == 2'b01) begin
-      request_valid[1]  <= '1;
-    end
-  end
-
-  always_ff @(posedge i_clk, negedge i_rst_n) begin
-    if (!i_rst_n) begin
-      read        <= '0;
-      address     <= '0;
-      byteenable  <= '0;
-      writedata   <= '0;
-    end
-    else if (request_valid == 2'b01) begin
-      read        <= avalon_if.read;
-      address     <= avalon_if.address;
-      byteenable  <= avalon_if.byteenable;
-      writedata   <= avalon_if.writedata;
-    end
-  end
-
-  always_ff @(posedge i_clk, negedge i_rst_n) begin
-    if (!i_rst_n) begin
-      response_valid  <= '0;
-    end
-    else if (bus_if.valid && bus_if.ready) begin
-      if (bus_if.access == RGGEN_READ) begin
-        response_valid  <= 2'b01;
-      end
-      else begin
-        response_valid  <= 2'b10;
-      end
+      waitrequest <= '0;
     end
     else begin
-      response_valid  <= '0;
+      waitrequest <= '1;
     end
   end
 
