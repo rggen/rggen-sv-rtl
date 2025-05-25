@@ -21,13 +21,14 @@ module rggen_indirect_register #(
   end
 
   rggen_register_common #(
-    .READABLE       (READABLE       ),
-    .WRITABLE       (WRITABLE       ),
-    .ADDRESS_WIDTH  (ADDRESS_WIDTH  ),
-    .OFFSET_ADDRESS (OFFSET_ADDRESS ),
-    .BUS_WIDTH      (BUS_WIDTH      ),
-    .DATA_WIDTH     (DATA_WIDTH     ),
-    .VALUE_WIDTH    (VALUE_WIDTH    )
+    .READABLE             (READABLE       ),
+    .WRITABLE             (WRITABLE       ),
+    .ADDRESS_WIDTH        (ADDRESS_WIDTH  ),
+    .OFFSET_ADDRESS       (OFFSET_ADDRESS ),
+    .BUS_WIDTH            (BUS_WIDTH      ),
+    .DATA_WIDTH           (DATA_WIDTH     ),
+    .VALUE_WIDTH          (VALUE_WIDTH    ),
+    .USE_ADDITIONAL_MATCH (1              )
   ) u_register_common (
     .i_clk              (i_clk          ),
     .i_rst_n            (i_rst_n        ),

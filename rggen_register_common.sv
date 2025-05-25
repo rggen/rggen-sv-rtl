@@ -1,13 +1,14 @@
 module rggen_register_common
   import  rggen_rtl_pkg::*;
 #(
-  parameter bit                     READABLE        = 1,
-  parameter bit                     WRITABLE        = 1,
-  parameter int                     ADDRESS_WIDTH   = 8,
-  parameter bit [ADDRESS_WIDTH-1:0] OFFSET_ADDRESS  = '0,
-  parameter int                     BUS_WIDTH       = 32,
-  parameter int                     DATA_WIDTH      = BUS_WIDTH,
-  parameter int                     VALUE_WIDTH     = BUS_WIDTH
+  parameter bit                     READABLE              = 1,
+  parameter bit                     WRITABLE              = 1,
+  parameter int                     ADDRESS_WIDTH         = 8,
+  parameter bit [ADDRESS_WIDTH-1:0] OFFSET_ADDRESS        = '0,
+  parameter int                     BUS_WIDTH             = 32,
+  parameter int                     DATA_WIDTH            = BUS_WIDTH,
+  parameter int                     VALUE_WIDTH           = BUS_WIDTH,
+  parameter bit                     USE_ADDITIONAL_MATCH  = '0
 )(
   input logic                 i_clk,
   input logic                 i_rst_n,
@@ -26,7 +27,14 @@ module rggen_register_common
   logic [WORDS-1:0] match;
   logic             active;
 
-  assign  active  = match != '0;
+  always_comb begin
+    if (WORDS == 1) begin
+      active  = match[0];
+    end
+    else begin
+      active  = |match;
+    end
+  end
 
   generate
     for (g = 0;g < WORDS;++g) begin : g_decoder
@@ -34,12 +42,13 @@ module rggen_register_common
                                                         + ADDRESS_WIDTH'(BUS_BYTE_WIDTH * g);
 
       rggen_address_decoder #(
-        .READABLE       (READABLE       ),
-        .WRITABLE       (WRITABLE       ),
-        .WIDTH          (ADDRESS_WIDTH  ),
-        .BUS_WIDTH      (BUS_WIDTH      ),
-        .START_ADDRESS  (START_ADDRESS  ),
-        .BYTE_SIZE      (BUS_BYTE_WIDTH )
+        .READABLE             (READABLE             ),
+        .WRITABLE             (WRITABLE             ),
+        .WIDTH                (ADDRESS_WIDTH        ),
+        .BUS_WIDTH            (BUS_WIDTH            ),
+        .START_ADDRESS        (START_ADDRESS        ),
+        .BYTE_SIZE            (BUS_BYTE_WIDTH       ),
+        .USE_ADDITIONAL_MATCH (USE_ADDITIONAL_MATCH )
       ) u_decoder (
         .i_address          (register_if.address  ),
         .i_access           (register_if.access   ),
@@ -53,39 +62,70 @@ module rggen_register_common
   logic                   frontdoor_valid;
   logic                   backdoor_valid;
   logic                   pending_valid;
-  logic [DATA_WIDTH-1:0]  read_mask[2];
-  logic [DATA_WIDTH-1:0]  write_mask[2];
+  logic [DATA_WIDTH-1:0]  mask[2];
+  logic                   write[2];
   logic [DATA_WIDTH-1:0]  write_data[2];
 
-  assign  bit_field_if.valid      = frontdoor_valid || backdoor_valid || pending_valid;
-  assign  bit_field_if.read_mask  = (backdoor_valid) ? read_mask[1]  : read_mask[0];
-  assign  bit_field_if.write_mask = (backdoor_valid) ? write_mask[1] : write_mask[0];
-  assign  bit_field_if.write_data = (backdoor_valid) ? write_data[1] : write_data[0];
-
-  assign  frontdoor_valid = (active) ? register_if.valid : '0;
-  assign  read_mask[0]    = get_mask(1'b0, READABLE, match, register_if.access, register_if.strobe);
-  assign  write_mask[0]   = get_mask(1'b1, WRITABLE, match, register_if.access, register_if.strobe);
-  assign  write_data[0]   = (WRITABLE) ? {WORDS{register_if.write_data}} : '0;
-
-  function automatic logic [DATA_WIDTH-1:0] get_mask(
-    logic                 write_access,
-    logic                 accessible,
-    logic [WORDS-1:0]     match,
-    rggen_access          access,
-    logic [BUS_WIDTH-1:0] strobe
-  );
-    logic [DATA_WIDTH-1:0]  mask;
-
-    for (int i = 0;i < WORDS;++i) begin
-      if (accessible && (access[RGGEN_ACCESS_DATA_BIT] == write_access) && match[i]) begin
-        mask[BUS_WIDTH*i+:BUS_WIDTH]  = strobe;
+  always_comb begin
+    if (backdoor_valid) begin
+      if (write[1]) begin
+        bit_field_if.write_valid  = '1;
+        bit_field_if.read_valid   = '0;
       end
       else begin
-        mask[BUS_WIDTH*i+:BUS_WIDTH]  = '0;
+        bit_field_if.write_valid  = '0;
+        bit_field_if.read_valid   = '1;
       end
+      bit_field_if.mask         = mask[1];
+      bit_field_if.write_data   = write_data[1];
     end
+    else begin
+      if (write[0]) begin
+        bit_field_if.write_valid  = (frontdoor_valid || pending_valid);
+        bit_field_if.read_valid   = '0;
+      end
+      else begin
+        bit_field_if.write_valid  = '0;
+        bit_field_if.read_valid   = (frontdoor_valid || pending_valid);
+      end
+      bit_field_if.mask         = mask[0];
+      bit_field_if.write_data   = write_data[0];
+    end
+  end
 
-    return mask;
+  always_comb begin
+    frontdoor_valid = active && register_if.valid;
+    mask[0]         = get_mask(match, register_if.strobe);
+    if (WRITABLE) begin
+      write[0]      = register_if.access[RGGEN_ACCESS_DATA_BIT];
+      write_data[0] = {WORDS{register_if.write_data}};
+    end
+    else begin
+      write[0]      = '0;
+      write_data[0] = '0;
+    end
+  end
+
+  function automatic logic [DATA_WIDTH-1:0] get_mask(
+    logic [WORDS-1:0]     match,
+    logic [BUS_WIDTH-1:0] strobe
+  );
+    if (BUS_WIDTH == DATA_WIDTH) begin
+      return strobe;
+    end
+    else begin
+      logic [DATA_WIDTH-1:0]  mask;
+      for (int i = 0;i < WORDS;++i) begin
+        if (match[i]) begin
+          mask[BUS_WIDTH*i+:BUS_WIDTH]  = strobe;
+        end
+        else begin
+          mask[BUS_WIDTH*i+:BUS_WIDTH]  = '0;
+        end
+      end
+
+      return mask;
+    end
   endfunction
 
   //  Response
@@ -100,11 +140,13 @@ module rggen_register_common
     .o_data   (read_data              )
   );
 
-  assign  register_if.active    = active;
-  assign  register_if.ready     = (!backdoor_valid) && active;
-  assign  register_if.status    = RGGEN_OKAY;
-  assign  register_if.read_data = read_data;
-  assign  register_if.value     = VALUE_WIDTH'(bit_field_if.value);
+  always_comb begin
+    register_if.active    = active;
+    register_if.ready     = !backdoor_valid;
+    register_if.status    = RGGEN_OKAY;
+    register_if.read_data = read_data;
+    register_if.value     = VALUE_WIDTH'(bit_field_if.value);
+  end
 
 `ifdef RGGEN_ENABLE_BACKDOOR
   //  Backdoor access
@@ -117,18 +159,19 @@ module rggen_register_common
     .i_frontdoor_ready  (register_if.ready      ),
     .o_backdoor_valid   (backdoor_valid         ),
     .o_pending_valid    (pending_valid          ),
-    .o_read_mask        (read_mask[1]           ),
-    .o_write_mask       (write_mask[1]          ),
+    .o_write            (write[1]               ),
+    .o_mask             (mask[1]                ),
     .o_write_data       (write_data[1]          ),
     .i_read_data        (bit_field_if.read_data ),
     .i_value            (bit_field_if.value     )
   );
 `else
-  assign  backdoor_valid  = '0;
-  assign  pending_valid   = '0;
-  assign  read_mask[1]    = '0;
-  assign  write_mask[1]   = '0;
-  assign  write_data[1]   = '0;
+  always_comb begin
+    backdoor_valid  = '0;
+    pending_valid   = '0;
+    mask[1]         = '0;
+    write[1]        = '0;
+  end
 `endif
 
 `ifdef RGGEN_ENABLE_SVA
