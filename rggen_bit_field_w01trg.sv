@@ -9,34 +9,35 @@ module rggen_bit_field_w01trg #(
   output  logic [WIDTH-1:0]     o_trigger
 );
   logic [WIDTH-1:0] trigger;
+  logic [WIDTH-1:0] assert_trigger;
 
-  assign  bit_field_if.read_data  = i_value;
-  assign  bit_field_if.value      = trigger;
-  assign  o_trigger               = trigger;
+  always_comb begin
+    bit_field_if.read_data  = i_value;
+    bit_field_if.value      = trigger;
+    o_trigger               = trigger;
+  end
+
+  always_comb begin
+    for (int i = 0;i < WIDTH;++i) begin
+      assert_trigger[i] =
+        bit_field_if.write_valid && bit_field_if.mask[i] &&
+          (bit_field_if.write_data[i] == TRIGGER_VALUE);
+    end
+  end
 
   always_ff @(posedge i_clk, negedge i_rst_n) begin
     if (!i_rst_n) begin
       trigger <= '0;
     end
-    else if (bit_field_if.valid) begin
-      trigger <= get_trigger(
-        bit_field_if.write_mask, bit_field_if.write_data
-      );
-    end
-    else if (trigger != '0) begin
-      trigger <= '0;
+    else begin
+      for (int i = 0;i < WIDTH;++i) begin
+        if (assert_trigger[i]) begin
+          trigger[i]  <= '1;
+        end
+        else if (trigger[i]) begin
+          trigger[i]  <= '0;
+        end
+      end
     end
   end
-
-  function automatic logic [WIDTH-1:0] get_trigger(
-    logic [WIDTH-1:0] mask,
-    logic [WIDTH-1:0] write_data
-  );
-    if (TRIGGER_VALUE) begin
-      return mask & write_data;
-    end
-    else begin
-      return mask & (~write_data);
-    end
-  endfunction
 endmodule

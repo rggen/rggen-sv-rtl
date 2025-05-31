@@ -18,16 +18,16 @@ interface rggen_backdoor_if(
   typedef bit [`RGGEN_BACKDOOR_DATA_WIDTH-1:0]  rggen_backdoor_data;
 
   bit                 valid;
-  rggen_backdoor_data read_mask;
-  rggen_backdoor_data write_mask;
+  bit                 write;
+  rggen_backdoor_data mask;
   rggen_backdoor_data write_data;
   rggen_backdoor_data read_data;
   rggen_backdoor_data value;
 
   clocking backdoor_cb @(posedge i_clk);
     output  valid;
-    output  read_mask;
-    output  write_mask;
+    output  write;
+    output  mask;
     output  write_data;
     input   read_data;
     input   value;
@@ -69,15 +69,13 @@ interface rggen_backdoor_if(
     end
 
     backdoor_cb.valid <= '1;
+    backdoor_cb.write <= write;
+    backdoor_cb.mask  <= mask;
     if (write) begin
-      backdoor_cb.read_mask   <= '0;
-      backdoor_cb.write_mask  <= mask;
       backdoor_cb.write_data  <= data;
     end
     else begin
       data  = get_read_data();
-      backdoor_cb.read_mask   <= mask;
-      backdoor_cb.write_mask  <= '0;
     end
 
     @(backdoor_cb);

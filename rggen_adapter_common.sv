@@ -39,7 +39,9 @@ module rggen_adapter_common
   //  Pre-decode
   logic inside_range;
 
-  assign  inside_range  = pre_decode(bus_if.address);
+  always_comb begin
+    inside_range  = pre_decode(bus_if.address);
+  end
 
   function automatic logic pre_decode(
     logic [ADDRESS_WIDTH-1:0] address
@@ -95,19 +97,23 @@ module rggen_adapter_common
       end
     end
     else begin : g_no_request_slicer
-      assign  bus_valid       = bus_if.valid && inside_range && (!busy);
-      assign  bus_access      = bus_if.access;
-      assign  bus_address     = get_local_address(bus_if.address);
-      assign  bus_write_data  = bus_if.write_data;
-      assign  bus_strobe      = bus_if.strobe;
+      always_comb begin
+        bus_valid       = bus_if.valid && inside_range && (!busy);
+        bus_access      = bus_if.access;
+        bus_address     = get_local_address(bus_if.address);
+        bus_write_data  = bus_if.write_data;
+        bus_strobe      = bus_if.strobe;
+      end
     end
 
     for (i = 0;i < REGISTERS;++i) begin : g_request
-      assign  register_if[i].valid      = bus_valid;
-      assign  register_if[i].access     = bus_access;
-      assign  register_if[i].address    = bus_address;
-      assign  register_if[i].write_data = bus_write_data;
-      assign  register_if[i].strobe     = get_regiser_strobe(bus_access, bus_strobe);
+      always_comb begin
+        register_if[i].valid      = bus_valid;
+        register_if[i].access     = bus_access;
+        register_if[i].address    = bus_address;
+        register_if[i].write_data = bus_write_data;
+        register_if[i].strobe     = get_regiser_strobe(bus_access, bus_strobe);
+      end
     end
   endgenerate
 
@@ -148,23 +154,48 @@ module rggen_adapter_common
   endfunction
 
   //  Response
-  localparam  rggen_status  DEFAULT_STATUS  = (ERROR_STATUS) ? RGGEN_SLAVE_ERROR : RGGEN_OKAY;
-  localparam  int           STATUS_WIDTH    = $bits(rggen_status);
-  localparam  int           RESPONSE_WIDTH  = BUS_WIDTH + STATUS_WIDTH;
+  localparam  int STATUS_WIDTH    = $bits(rggen_status);
+  localparam  int RESPONSE_WIDTH  = 1 + 1 + BUS_WIDTH + ((ERROR_STATUS) ? STATUS_WIDTH : 0);
 
-  logic [REGISTERS-1:0]                     ready;
   logic [REGISTERS-1:0]                     active;
   logic [REGISTERS-1:0][RESPONSE_WIDTH-1:0] response;
   logic [RESPONSE_WIDTH-1:0]                selected_response;
-  logic                                     register_inactive;
+  logic                                     register_active;
+  logic                                     register_ready;
   rggen_status                              register_status;
   logic [BUS_WIDTH-1:0]                     register_read_data;
+  logic                                     register_inactive;
 
   generate
-    for (i = 0;i < REGISTERS;++i) begin : g_response
-      assign  active[i]   = register_if[i].active;
-      assign  ready[i]    = register_if[i].ready;
-      assign  response[i] = {register_if[i].status, register_if[i].read_data};
+    if (ERROR_STATUS) begin : g_response
+      for (i = 0;i < REGISTERS;++i) begin : g
+        always_comb begin
+          active[i]   = register_if[i].active;
+          response[i] = {register_if[i].status, register_if[i].read_data, register_if[i].ready, 1'b1};
+        end
+      end
+
+      always_comb begin
+        register_active     = selected_response[0];
+        register_ready      = selected_response[1];
+        register_read_data  = selected_response[2+:BUS_WIDTH];
+        register_status     = rggen_status'(selected_response[2+BUS_WIDTH+:STATUS_WIDTH]);
+      end
+    end
+    else begin : g_response
+      for (i = 0;i < REGISTERS;++i) begin : g
+        always_comb begin
+          active[i]   = register_if[i].active;
+          response[i] = {register_if[i].read_data, register_if[i].ready, 1'b1};
+        end
+      end
+
+      always_comb begin
+        register_active     = selected_response[0];
+        register_ready      = selected_response[1];
+        register_read_data  = selected_response[2+:BUS_WIDTH];
+        register_status     = RGGEN_OKAY;
+      end
     end
   endgenerate
 
@@ -177,13 +208,21 @@ module rggen_adapter_common
     .o_data   (selected_response  )
   );
 
-  assign  register_inactive   = (!inside_range) || (active == '0);
-  assign  register_status     = rggen_status'(selected_response[BUS_WIDTH+:STATUS_WIDTH]);
-  assign  register_read_data  = selected_response[0+:BUS_WIDTH];
+  always_comb begin
+    register_inactive = (!inside_range) || (!register_active);
+  end
 
-  assign  bus_if.ready      = ((!INSERT_SLICER) || busy) && ((ready != '0) || register_inactive);
-  assign  bus_if.status     = (register_inactive) ? DEFAULT_STATUS    : register_status;
-  assign  bus_if.read_data  = (register_inactive) ? DEFAULT_READ_DATA : register_read_data;
+  always_comb begin
+    bus_if.ready  = ((!INSERT_SLICER) || busy) && (register_ready || register_inactive);
+    if ((!ERROR_STATUS) || (!register_inactive)) begin
+      bus_if.status     = register_status;
+      bus_if.read_data  = register_read_data;
+    end
+    else begin
+      bus_if.status     = RGGEN_SLAVE_ERROR;
+      bus_if.read_data  = DEFAULT_READ_DATA;
+    end
+  end
 
 `ifdef RGGEN_ENABLE_SVA
   ast_hold_request_command_until_ready_is_high:
@@ -204,12 +243,6 @@ module rggen_adapter_common
   assert property (
     @(posedge i_clk)
     (bus_if.valid && (active != '0)) |-> $onehot(active)
-  );
-
-  ast_assert_ready_of_active_register_only:
-  assert property (
-    @(posedge i_clk)
-    (bus_if.valid && (ready != '0)) |-> (active == ready)
   );
 `endif
 endmodule
