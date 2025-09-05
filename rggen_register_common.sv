@@ -171,6 +171,7 @@ module rggen_register_common
     pending_valid   = '0;
     mask[1]         = '0;
     write[1]        = '0;
+    write_data[1]   = '0;
   end
 `endif
 
