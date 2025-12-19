@@ -15,6 +15,7 @@ end
   'rggen_default_register.sv',
   'rggen_external_register.sv',
   'rggen_indirect_register.sv',
+  'rggen_maskable_register.sv',
   'rggen_bus_if.sv',
   'rggen_adapter_common.sv'
 ].each { |file| source_file file }

@@ -8,12 +8,14 @@ module rggen_register_common
   parameter int                     BUS_WIDTH             = 32,
   parameter int                     DATA_WIDTH            = BUS_WIDTH,
   parameter int                     VALUE_WIDTH           = BUS_WIDTH,
-  parameter bit                     USE_ADDITIONAL_MATCH  = '0
+  parameter bit                     USE_ADDITIONAL_MATCH  = '0,
+  parameter bit                     USE_ADDITIONAL_MASK   = '0
 )(
   input logic                 i_clk,
   input logic                 i_rst_n,
   rggen_register_if.register  register_if,
   input logic                 i_additional_match,
+  input logic [BUS_WIDTH-1:0] i_additional_mask,
   rggen_bit_field_if.register bit_field_if
 );
   localparam  int WORDS             = DATA_WIDTH / BUS_WIDTH;
@@ -95,7 +97,7 @@ module rggen_register_common
 
   always_comb begin
     frontdoor_valid = active && register_if.valid;
-    mask[0]         = get_mask(match, register_if.strobe);
+    mask[0]         = get_mask(match, register_if.strobe, i_additional_mask);
     if (WRITABLE) begin
       write[0]      = register_if.access[RGGEN_ACCESS_DATA_BIT];
       write_data[0] = {WORDS{register_if.write_data}};
@@ -108,16 +110,26 @@ module rggen_register_common
 
   function automatic logic [DATA_WIDTH-1:0] get_mask(
     logic [WORDS-1:0]     match,
-    logic [BUS_WIDTH-1:0] strobe
+    logic [BUS_WIDTH-1:0] strobe,
+    logic [BUS_WIDTH-1:0] additional_mask
   );
+    logic [BUS_WIDTH-1:0] word_mask;
+
+    if (USE_ADDITIONAL_MASK) begin
+      word_mask = strobe & additional_mask;
+    end
+    else begin
+      word_mask = strobe;
+    end
+
     if (BUS_WIDTH == DATA_WIDTH) begin
-      return strobe;
+      return word_mask;
     end
     else begin
       logic [DATA_WIDTH-1:0]  mask;
       for (int i = 0;i < WORDS;++i) begin
         if (match[i]) begin
-          mask[BUS_WIDTH*i+:BUS_WIDTH]  = strobe;
+          mask[BUS_WIDTH*i+:BUS_WIDTH]  = word_mask;
         end
         else begin
           mask[BUS_WIDTH*i+:BUS_WIDTH]  = '0;

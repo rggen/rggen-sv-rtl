@@ -34,6 +34,7 @@ module rggen_indirect_register #(
     .i_rst_n            (i_rst_n        ),
     .register_if        (register_if    ),
     .i_additional_match (index_matched  ),
+    .i_additional_mask  ('1             ),
     .bit_field_if       (bit_field_if   )
   );
 endmodule

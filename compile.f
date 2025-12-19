@@ -11,6 +11,7 @@ ${RGGEN_SV_RTL_ROOT}/rggen_register_common.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_default_register.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_external_register.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_indirect_register.sv
+${RGGEN_SV_RTL_ROOT}/rggen_maskable_register.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bus_if.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_adapter_common.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_apb_if.sv
