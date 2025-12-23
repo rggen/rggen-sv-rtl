@@ -8,6 +8,7 @@ end
   'rggen_mux.sv',
   'rggen_bit_field_if.sv',
   'rggen_bit_field.sv',
+  'rggen_bit_field_counter.sv',
   'rggen_bit_field_w01trg.sv',
   'rggen_register_if.sv',
   'rggen_address_decoder.sv',

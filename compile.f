@@ -4,6 +4,7 @@ ${RGGEN_SV_RTL_ROOT}/rggen_or_reducer.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_mux.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_if.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field.sv
+${RGGEN_SV_RTL_ROOT}/rggen_bit_field_counter.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_bit_field_w01trg.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_register_if.sv
 ${RGGEN_SV_RTL_ROOT}/rggen_address_decoder.sv
