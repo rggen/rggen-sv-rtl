@@ -282,12 +282,18 @@ module rggen_bit_field
 
   generate
     if (TRIGGER && SW_WRITABLE) begin : g_write_trigger
+      logic write_access;
+
+      always_comb begin
+        write_access  = sw_update[1] && (bit_field_if.mask != '0);
+      end
+
       always_ff @(posedge i_clk, negedge i_rst_n) begin
         if (!i_rst_n) begin
           trigger[0]  <= '0;
         end
         else begin
-          trigger[0]  <= sw_update[1] && (bit_field_if.mask != '0);
+          trigger[0]  <= write_access;
         end
       end
     end
@@ -296,12 +302,18 @@ module rggen_bit_field
     end
 
     if (TRIGGER && SW_READABLE) begin : g_read_trigger
+      logic read_access;
+
+      always_comb begin
+        read_access = bit_field_if.read_valid && (bit_field_if.mask != '0);
+      end
+
       always_ff @(posedge i_clk, negedge i_rst_n) begin
         if (!i_rst_n) begin
           trigger[1]  <= '0;
         end
         else begin
-          trigger[1]  <= sw_update[0] && (bit_field_if.mask != '0);
+          trigger[1]  <= read_access;
         end
       end
     end
