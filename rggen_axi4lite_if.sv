@@ -1,11 +1,9 @@
-interface rggen_axi4lite_if
-  import  rggen_rtl_pkg::*;
-#(
+interface rggen_axi4lite_if #(
   parameter int ID_WIDTH      = 0,
   parameter int ADDRESS_WIDTH = 16,
   parameter int BUS_WIDTH     = 32
 );
-  localparam  int ACTUAL_ID_WIDTH = rggen_clip_width(ID_WIDTH);
+  localparam  int ACTUAL_ID_WIDTH = rggen_rtl_pkg::rggen_clip_width(ID_WIDTH);
 
   logic                       awvalid;
   logic                       awready;
