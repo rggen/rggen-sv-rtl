@@ -1,6 +1,4 @@
-interface rggen_wishbone_if
-  import  rggen_rtl_pkg::*;
-#(
+interface rggen_wishbone_if #(
   parameter int ADDRESS_WIDTH = 16,
   parameter int DATA_WIDTH    = 32
 );
