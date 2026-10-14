@@ -88,7 +88,9 @@ module rggen_bit_field_counter
 
     down_value  = DOWN_VALUE_WIDTH'(0);
     for (int i = 0;i < DOWN_WIDTH;++i) begin
-      down_value  = down_value + DOWN_VALUE_WIDTH'(1);
+      if (down[i]) begin
+        down_value  = down_value + DOWN_VALUE_WIDTH'(1);
+      end
     end
 
     return count + WIDTH'(up_value) - WIDTH'(down_value);
